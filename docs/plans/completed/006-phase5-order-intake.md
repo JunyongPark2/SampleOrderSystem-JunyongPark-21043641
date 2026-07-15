@@ -51,5 +51,13 @@ tests/test_order_service.py                      (신규, 접수 케이스만)
 
 ## 완료 조건
 
-- [ ] `tests/test_order_service.py`(접수 관련) 전체 통과.
-- [ ] 수동 시나리오가 SPEC.md §3.1과 일치.
+- [x] `tests/test_order_service.py`(접수 관련) 전체 통과.
+- [x] 수동 시나리오가 SPEC.md §3.1과 일치.
+
+## 진행 기록
+
+- `services/order_service.py`: `validate_sample_id`(미존재 시 `NotFoundError` → `ValidationError(SAMPLE_NOT_FOUND_ERROR)`로 변환, 재입력 없이 중단), `validate_quantity`(정수·1 이상만 통과), `create_order`가 둘을 검증한 뒤 `OrderRepository.create()`에 위임.
+- `views/order_view.py`, `controllers/order_controller.py`: `sample_id`→`customer_name`→`quantity` 순서 입력, `sample_id` 오류 시 즉시 중단(재입력 없음), `quantity` 오류 시 재입력 루프, Y/N 확인 화면, 접수 완료 화면(SPEC.md §3.1 문구 그대로).
+- 메뉴 `[2]`는 시료 관리(메뉴 `[1]`)와 달리 하위 메뉴 루프가 없고 단발성 흐름이라 `OrderController.run()`을 1회 실행 후 자동으로 메인 메뉴로 복귀하는 구조로 구현(SPEC.md §3 예시 화면에 하위 메뉴 표시가 없음을 근거로 판단).
+- 테스트: `pytest tests/test_order_service.py -q` → 5 passed.
+- 수동 시나리오: `OrderController`를 임시 스크립트로 조립해 (1) 숫자 아님/0 → 재입력 요구 → 200 입력 → Y 확인 → `ORD-20260715-0001`/RESERVED 접수 완료, (2) 존재하지 않는 `sample_id` → 즉시 중단 메시지, 두 경우 모두 SPEC.md §3.1 문구·형식과 일치 확인.
