@@ -1,0 +1,29 @@
+from dataclasses import dataclass
+from datetime import datetime
+
+from sampleorder.clock import utc_now
+from sampleorder.models import Order, OrderStatus
+from sampleorder.repositories.order_repository import OrderRepository
+from sampleorder.repositories.sample_repository import SampleRepository
+
+
+@dataclass
+class ReleaseResult:
+    order: Order
+    processed_at: datetime
+
+
+class ShippingService:
+    def __init__(self, order_repository: OrderRepository, sample_repository: SampleRepository):
+        self._order_repo = order_repository
+        self._sample_repo = sample_repository
+
+    def list_confirmed_orders(self) -> list:
+        return self._order_repo.list_by_status(OrderStatus.CONFIRMED)
+
+    def release(self, order_id: str, now_fn=utc_now) -> ReleaseResult:
+        order = self._order_repo.get(order_id)
+        sample = self._sample_repo.get(order.sample_id)
+        self._sample_repo.update(order.sample_id, stock=sample.stock - order.quantity)
+        updated_order = self._order_repo.update(order_id, status=OrderStatus.RELEASE)
+        return ReleaseResult(order=updated_order, processed_at=now_fn())

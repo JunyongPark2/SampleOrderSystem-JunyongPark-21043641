@@ -50,5 +50,12 @@ tests/test_shipping_service.py
 
 ## 완료 조건
 
-- [ ] `tests/test_shipping_service.py` 전체 통과.
-- [ ] 수동 시나리오가 SPEC.md §7과 일치.
+- [x] `tests/test_shipping_service.py` 전체 통과.
+- [x] 수동 시나리오가 SPEC.md §7과 일치.
+
+## 진행 기록
+
+- `services/shipping_service.py`: `list_confirmed_orders()`, `release(order_id, now_fn)` — 재고 차감(`stock - quantity`), 상태 전환(`CONFIRMED → RELEASE`), `ReleaseResult(order, processed_at)` 반환.
+- `views/shipping_view.py`, `controllers/shipping_controller.py`: 목록 표시, Y/N 확인 없이 선택 즉시 실행(SPEC.md §7.2), 빈 목록 시 안내 메시지.
+- 테스트: `pytest tests/test_shipping_service.py -q` → 2 passed(재고 차감/상태 전환, CONFIRMED만 목록에 노출). 전체 `pytest -q` → 60 passed.
+- 수동 시나리오: CONFIRMED 주문 1건 출고 실행 → 재고 480→330(150 차감), 처리 결과 화면이 SPEC.md §7.2 문구와 일치. 빈 목록 시 "출고 가능한 주문이 없습니다." 확인.
