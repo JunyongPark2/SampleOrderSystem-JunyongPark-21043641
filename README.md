@@ -30,6 +30,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
+`main.py`는 실행 시 `src/`를 `sys.path`에 직접 추가하므로, 별도 설치 없이 시스템 파이썬으로
+바로 실행해도 동작한다:
+
+```bash
+python3 main.py
+```
+
+단, `pytest`는 이 방식이 적용되지 않으므로 테스트를 실행하려면 위 설치 과정(`pip install -e .`)이
+반드시 필요하다.
+
 실행하면 메인 메뉴가 표시된다.
 
 ```

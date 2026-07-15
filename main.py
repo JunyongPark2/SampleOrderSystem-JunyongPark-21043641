@@ -1,4 +1,7 @@
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from sampleorder.controllers.approval_controller import ApprovalController
 from sampleorder.controllers.main_controller import MainController
