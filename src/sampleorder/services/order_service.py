@@ -102,3 +102,6 @@ class OrderService:
 
     def reject_order(self, order_id: str) -> Order:
         return self._order_repo.update(order_id, status=OrderStatus.REJECTED)
+
+    def sample_name_map(self, orders: list) -> dict:
+        return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}

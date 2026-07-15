@@ -3,10 +3,9 @@ from sampleorder.views.approval_view import ApprovalView
 
 
 class ApprovalController:
-    def __init__(self, service: OrderService, view: ApprovalView, sample_repository):
+    def __init__(self, service: OrderService, view: ApprovalView):
         self._service = service
         self._view = view
-        self._sample_repo = sample_repository
 
     def run(self) -> None:
         orders = self._service.list_reserved_orders()
@@ -14,7 +13,7 @@ class ApprovalController:
             self._view.show_no_pending_orders()
             return
 
-        sample_names = {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}
+        sample_names = self._service.sample_name_map(orders)
         self._view.show_reserved_table(orders, sample_names)
 
         choice = self._view.prompt_order_choice()

@@ -43,7 +43,7 @@ def build_main_controller() -> MainController:
 
     sample_controller = SampleController(sample_service, SampleView())
     order_controller = OrderController(order_service, OrderView())
-    approval_controller = ApprovalController(order_service, ApprovalView(), sample_repo)
+    approval_controller = ApprovalController(order_service, ApprovalView())
     production_controller = ProductionController(production_service, ProductionView())
     monitoring_controller = MonitoringController(monitoring_service, MonitoringView())
     shipping_controller = ShippingController(shipping_service, ShippingView(), sample_repo)

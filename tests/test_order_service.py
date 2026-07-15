@@ -118,3 +118,10 @@ def test_list_reserved_orders_excludes_other_statuses(order_service, sample_repo
     reserved_orders = order_service.list_reserved_orders()
 
     assert [o.order_id for o in reserved_orders] == [reserved.order_id]
+
+
+def test_sample_name_map_returns_name_per_sample_id(order_service, sample_repository, order_repository):
+    sample_repository.create("실리콘 웨이퍼-8인치", 0.5, 0.9)
+    order = order_repository.create("S-001", "고객A", 10)
+    result = order_service.sample_name_map([order])
+    assert result == {"S-001": "실리콘 웨이퍼-8인치"}
