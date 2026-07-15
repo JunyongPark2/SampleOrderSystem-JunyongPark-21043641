@@ -26,9 +26,10 @@ class CliResult:
 
 @pytest.fixture
 def run_cli(tmp_path):
-    def _run(inputs: list, timeout: float = 10.0) -> CliResult:
-        data_dir = tmp_path / "data"
-        data_dir.mkdir()
+    def _run(inputs: list, timeout: float = 10.0, data_dir: Path = None) -> CliResult:
+        if data_dir is None:
+            data_dir = tmp_path / "data"
+            data_dir.mkdir()
         stdin_text = "\n".join(inputs) + "\n"
         process = subprocess.run(
             [sys.executable, str(MAIN_PY)],
