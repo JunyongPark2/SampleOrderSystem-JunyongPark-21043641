@@ -39,6 +39,7 @@ SampleOrderSystem/
     repositories/
       sample_repository.py       # SampleRepository: create/get/list_all/search/update
       order_repository.py        # OrderRepository: create/get/list_all/list_by_status/update
+      _record_utils.py           # find_record: id로 레코드 탐색 후 없으면 NotFoundError (두 레포지토리 공용)
     services/
       sample_service.py          # FR-1.1~1.3 등록/조회/검색 + 등록 검증
       order_service.py           # FR-2.1 접수, FR-3.2/3.3 승인·거절 판정
@@ -46,6 +47,8 @@ SampleOrderSystem/
       shipping_service.py        # FR-6.1~6.2 출고
       monitoring_service.py      # FR-4.1~4.2 상태별 집계, 재고 상태 판정
       calculations.py            # 공식 7종 단일 구현체 (shortage/actual_yield/total_production_time/pending_demand/stock_status/reserved_qty/available_stock)
+      sample_lookup.py           # sample_name_map: 주문 목록→시료명 매핑 (order_service/shipping_service 공용)
+      validation.py              # validate_int: "true int" 검증 가드 (order_service/sample_service 공용)
     views/
       main_view.py, sample_view.py, order_view.py, approval_view.py,
       monitoring_view.py, production_view.py, shipping_view.py
