@@ -52,5 +52,11 @@ tests/test_calculations.py
 
 ## 완료 조건
 
-- [ ] `tests/test_calculations.py` 전체 통과, 특히 `ceil` 올림 경계값 케이스 포함.
-- [ ] 이후 Phase 6/7/8의 Service들이 이 모듈을 import만 하고 자체 계산식을 재구현하지 않음(코드 리뷰 체크 항목).
+- [x] `tests/test_calculations.py` 전체 통과, 특히 `ceil` 올림 경계값 케이스 포함.
+- [x] 이후 Phase 6/7/8의 Service들이 이 모듈을 import만 하고 자체 계산식을 재구현하지 않음(코드 리뷰 체크 항목) — Phase 6/7/8 구현 시 계속 확인 예정.
+
+## 진행 기록
+
+- `services/calculations.py`에 `shortage/actual_yield/total_production_time/pending_demand/stock_status` 5개 순수 함수 구현. `stock_status`는 고갈(`STOCK_DEPLETED`)을 가장 먼저 체크(SPEC.md §5.3 판정 순서 그대로).
+- **SPEC.md 예시 화면 수치와의 불일치 확인**: SPEC.md §4.2/§6.1 예시 화면(`실생산량 206 ea / 165 min`, `실생산량 54 ea`)은 §8 공식(`ceil(부족분/수율)`)으로 재계산하면 각각 185/54.34→55가 나와 예시 숫자와 어긋난다. SPEC.md §0/§8이 "화면 레이아웃은 예시일 뿐이며 계산식이 Single Source of Truth"라고 명시하므로, 예시 숫자가 아니라 §8 공식 그대로 구현했다. 예시 화면 수치는 PDF에서 옮기며 생긴 오타로 추정되며, PDF 원본과 대조가 필요하면 별도 확인 필요(SPEC.md 자체는 수정하지 않음 — 공식이 정본이라는 문서 방침을 그대로 따름).
+- `tests/test_calculations.py` 10개 테스트(부족분 3구간, 실생산량 3케이스, 총생산시간, 대기수요 상태 필터, 재고상태 3구간 경계값) 작성 및 통과: `pytest tests/test_calculations.py -q` → 10 passed.
