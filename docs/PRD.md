@@ -56,7 +56,7 @@
 | name | str | 시료명 |
 | avg_production_time | float | 개당 평균 생산시간 (분) |
 | yield_rate | float | 수율. 정상 시료 수 / 총 생산 시료 수 (0~1). 예: 100개 생산 중 정상 90개 = 0.9 |
-| stock | int | 현재 재고 수량 (등록 시 기본값 0, 이후 생산 완료로 증가, 출고로 감소) |
+| stock | int | 현재 재고 수량 (등록 시 사용자 입력, `0` 이상 정수. 이후 생산 완료로 증가, 출고로 감소) |
 
 ### 4.2 Order (주문)
 | 필드 | 타입 | 설명 |
@@ -106,9 +106,10 @@ CONFIRMED --(출고처리)--> RELEASE
 ### 5.1 시료 관리
 시료(Sample)는 시스템의 가장 기본이 되는 단위이며, 시스템에 등록된 시료만 주문 가능하다.
 
-- **FR-1.1 시료 등록**: `sample_id`(자동 채번), `name`, `avg_production_time`, `yield_rate`를 입력받아 신규 시료를 추가한다. 등록 시 `stock`은 0으로 초기화된다.
+- **FR-1.1 시료 등록**: `sample_id`(자동 채번), `name`, `avg_production_time`, `yield_rate`, `stock`을 입력받아 신규 시료를 추가한다.
   - `yield_rate`는 0 초과 1 이하 범위여야 하며, 범위를 벗어나면 등록을 거부하고 재입력을 요청한다.
   - `avg_production_time`은 0보다 커야 한다.
+  - `stock`은 0 이상의 정수여야 하며, 그렇지 않으면 등록을 거부하고 재입력을 요청한다.
 - **FR-1.2 시료 조회**: 등록된 모든 시료 목록을 `sample_id`, `name`, `avg_production_time`, `yield_rate`, 현재 재고와 함께 표시한다.
 - **FR-1.3 시료 검색**: 이름(부분 문자열, 대소문자 무관)으로 시료를 검색하여 일치하는 목록을 표시한다.
 
