@@ -1,6 +1,6 @@
 # 생산라인 큐(FIFO) 영속화 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** `ProductionService`의 FIFO 큐(`self._queue`)가 현재 메모리에만 존재해 앱을 재시작하면 `PRODUCING` 상태 주문의 진행 정보(부족분/실생산량/총생산시간/시작 시각)가 사라지는 문제를 고친다. 이는 `docs/plans/completed/000-overview.md` §11에 이미 알려진 위험으로 기록돼 있고, PRD.md Goal 4 / NFR-1("재시작 후에도 데이터가 유지되는 영속성 보장")과 어긋난다. `data/production_queue.json` 파일을 추가해 큐를 다른 Repository와 동일한 원자적 쓰기 방식으로 영속화한다.
 
@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: `ProductionService.__init__(order_repository, sample_repository, store=None)` — `store: JsonFileStore | None`.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `tests/conftest.py`에 fixture 추가:
 
@@ -93,12 +93,12 @@ def test_store_none_keeps_in_memory_only_behavior(sample_repository, order_repos
     assert service.queue_length() == 1
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `.venv/bin/python -m pytest tests/test_production_service.py -v`
 Expected: 새 테스트들이 `TypeError: __init__() got an unexpected keyword argument 'store'`로 FAIL, 기존 테스트는 그대로 PASS.
 
-- [ ] **Step 3: 최소 구현 작성**
+- [x] **Step 3: 최소 구현 작성**
 
 `src/sampleorder/services/production_service.py`에서 아래를 수정한다.
 
@@ -174,11 +174,11 @@ def _dict_to_item(record: dict) -> QueueItem:
             self._persist()
 ```
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [x] **Step 4: 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest -q` → 전체 스위트 통과(기존 `production_service` fixture는 `store` 인자를 넘기지 않으므로 `store=None` 경로로 그대로 동작).
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/sampleorder/services/production_service.py tests/test_production_service.py tests/conftest.py
@@ -194,7 +194,7 @@ git commit -m "feat: persist production queue to survive app restart"
 
 **Interfaces:** 없음(배선 변경만).
 
-- [ ] **Step 1: `build_main_controller()` 수정**
+- [x] **Step 1: `build_main_controller()` 수정**
 
 `main.py`에서 `order_store`/`sample_store` 생성 부분 다음에 추가:
 
@@ -204,7 +204,7 @@ git commit -m "feat: persist production queue to survive app restart"
 
 `ProductionService(order_repo, sample_repo)` → `ProductionService(order_repo, sample_repo, store=queue_store)`로 수정.
 
-- [ ] **Step 2: 수동 재시작 검증**
+- [x] **Step 2: 수동 재시작 검증**
 
 ```bash
 python main.py
@@ -214,11 +214,11 @@ python main.py
 3. `python main.py` 재실행 → `[5] 생산라인 조회` 진입 시 방금 등록한 항목이 그대로 표시되는지 확인(재시작 전과 동일한 부족분/실생산량/진행률 기준점)
 4. 총생산시간이 지난 뒤(또는 짧은 `total_time`의 테스트 데이터로) 재진입 시 정상적으로 `CONFIRMED`로 완료 처리되는지 확인
 
-- [ ] **Step 3: 전체 테스트 통과 확인**
+- [x] **Step 3: 전체 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest -q` → 전체 스위트 통과.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add main.py
@@ -235,7 +235,7 @@ git commit -m "feat: wire production queue persistence into main.py"
 
 **Interfaces:** 없음(문서 전용).
 
-- [ ] **Step 1: `docs/ARCHITECTURE.md` §2 디렉터리 구조 갱신**
+- [x] **Step 1: `docs/ARCHITECTURE.md` §2 디렉터리 구조 갱신**
 
 `data/` 항목을 아래로 교체:
 
@@ -244,7 +244,7 @@ git commit -m "feat: wire production queue persistence into main.py"
     samples.json, orders.json, production_queue.json
 ```
 
-- [ ] **Step 2: `docs/ARCHITECTURE.md` §5 영속성 설계 갱신**
+- [x] **Step 2: `docs/ARCHITECTURE.md` §5 영속성 설계 갱신**
 
 "저장 파일: `data/samples.json`, `data/orders.json`." 문장을 아래로 교체:
 
@@ -253,16 +253,16 @@ git commit -m "feat: wire production queue persistence into main.py"
 - `production_queue.json`은 `ProductionService`가 직접 소유한다(별도 Repository 없음) — `enqueue()`/`advance()`로 큐 내용이 바뀔 때마다 전체 큐를 직렬화해 저장하고, 생성 시점에 복원한다. 이로써 `PRODUCING` 상태 주문도 앱 재시작 후 진행 정보(부족분/실생산량/총생산시간/시작 시각)가 유지된다(PRD.md NFR-1).
 ```
 
-- [ ] **Step 3: `docs/adr/ADR-0001-JSON파일기반영속성.md` 갱신**
+- [x] **Step 3: `docs/adr/ADR-0001-JSON파일기반영속성.md` 갱신**
 
 "결정" 절의 "`data/samples.json`, `data/orders.json` 두 개의 JSON 파일" 문장을 "`data/samples.json`, `data/orders.json`, `data/production_queue.json` 세 개의 JSON 파일"로 수정.
 
-- [ ] **Step 4: 갱신 확인**
+- [x] **Step 4: 갱신 확인**
 
 Run: `grep -n "production_queue" docs/ARCHITECTURE.md docs/adr/ADR-0001-JSON파일기반영속성.md`
 Expected: 위에서 추가한 문구가 모두 반영됨.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add docs/ARCHITECTURE.md "docs/adr/ADR-0001-JSON파일기반영속성.md"
@@ -273,8 +273,8 @@ git commit -m "docs: reflect production queue persistence in ARCHITECTURE/ADR-00
 
 ## 완료 조건
 
-- [ ] `.venv/bin/python -m pytest -q` 전체 통과.
-- [ ] `PRODUCING` 상태 주문이 있는 상태에서 `python main.py`를 재시작해도 `[5] 생산라인 조회`에 해당 항목이 유지되고, 완료 시점에 정상적으로 `CONFIRMED`로 전환됨을 수동 확인.
-- [ ] `data/production_queue.json`이 다른 데이터 파일과 동일한 원자적 쓰기 방식(`os.replace`)으로 저장됨(코드 재사용 확인 — 별도 구현 없음).
-- [ ] `docs/ARCHITECTURE.md`, `docs/adr/ADR-0001-JSON파일기반영속성.md`에 세 번째 데이터 파일이 반영됨.
-- [ ] Task별로 커밋 완료(총 3개 커밋).
+- [x] `.venv/bin/python -m pytest -q` 전체 통과.
+- [x] `PRODUCING` 상태 주문이 있는 상태에서 `python main.py`를 재시작해도 `[5] 생산라인 조회`에 해당 항목이 유지되고, 완료 시점에 정상적으로 `CONFIRMED`로 전환됨을 수동 확인.
+- [x] `data/production_queue.json`이 다른 데이터 파일과 동일한 원자적 쓰기 방식(`os.replace`)으로 저장됨(코드 재사용 확인 — 별도 구현 없음).
+- [x] `docs/ARCHITECTURE.md`, `docs/adr/ADR-0001-JSON파일기반영속성.md`에 세 번째 데이터 파일이 반영됨.
+- [x] Task별로 커밋 완료(총 3개 커밋).
