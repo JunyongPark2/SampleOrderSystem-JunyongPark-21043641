@@ -1,0 +1,276 @@
+# PRD: 반도체 시료 생산주문관리 시스템 (SampleOrderSystem)
+
+> 미션2 프로젝트 개발 산출물의 요구사항 명세서. 미션1(PoC)에서 검증된 4개 저장소(ConsoleMVC, DataPersistence, DataMonitor, DummyDataGenerator)의 구조/도메인 모델을 통합하여, 과제 PDF(`[CRA_AI] Day3_개인과제_반도체시료관리_r1 2.pdf`)의 기능 명세를 충족하는 콘솔 기반 Python 애플리케이션을 개발한다.
+
+## 1. 배경 (Background)
+
+가상의 반도체 회사 "S-Semi"는 연구소, 팹리스(Fabless) 업체, 대학 연구실 등 고객에게 반도체 시료(Sample)를 주문 생산하여 납품한다. 시료는 주문이 들어오면 웨이퍼 공정 설비를 통해 제작되고, 검수를 거쳐 고객에게 출고된다.
+
+최근 주문량이 급증하면서 엑셀과 메모장 기반 관리로는 다음과 같은 문제가 발생하고 있다:
+- 주문 처리 여부를 파악하기 어려움
+- 공정 예약 후 완료 시점을 알 수 없음
+- 재고가 충분한데도 불필요한 추가 공정이 진행됨
+
+이를 해결하기 위해 **반도체 시료 생산주문관리 시스템**을 콘솔 기반으로 개발한다.
+
+### 역할 (Actors)
+| 역할 | 책임 |
+|---|---|
+| 고객 (Customer) | 필요한 시료를 이메일 등 외부 채널로 요청 (시스템 사용자는 아님) |
+| 주문 담당자 | 고객 요청에 맞게 시료 주문(예약)을 시스템에 등록/관리 |
+| 생산 담당자 | 개발 시료 등록, 주문 수신 후 승인/거절, 생산라인 관리, 출고 처리 |
+
+실제 시스템 사용자는 "주문 담당자"와 "생산 담당자"이며, 하나의 콘솔 애플리케이션에서 메뉴를 통해 두 역할의 기능을 모두 수행한다 (역할별 로그인 분리는 범위 밖).
+
+## 2. 목표 (Goals)
+
+1. PDF 기능 명세(Chapter 2)를 100% 충족하는 콘솔 애플리케이션 제공
+2. 미션1 4개 PoC의 검증된 도메인 모델·persistence 패턴·모니터링 로직을 재사용/통합
+3. 미션1 PoC들이 구현하지 않았던 핵심 비즈니스 로직(승인 판정, 생산라인 시뮬레이션, 출고 처리)을 신규 구현
+4. 애플리케이션 재시작 후에도 데이터가 유지되는 영속성 보장
+5. 미션2 평가 기준 충족: 문서 관리(CLAUDE.md, PRD.md), Harness 도입, Test, Clean Code, Commit 이력
+
+## 3. 범위 (Scope)
+
+### In Scope
+- 콘솔 기반 메인 메뉴 및 6개 하위 메뉴 전체 기능
+- 시료/주문 CRUD 및 JSON 파일 기반 영속성
+- 주문 승인 시 재고 판정 로직 및 생산라인 자동 등록
+- 생산라인 FIFO 큐 시뮬레이션 (실생산량/총생산시간 계산, 완료 시 자동 상태 전환)
+- 모니터링(상태별 주문 수, 시료별 재고 현황) 및 출고 처리
+- 초기 구동/테스트를 위한 더미 데이터 생성 기능 (DummyDataGenerator 로직 재사용)
+
+### Out of Scope
+- 웹/GUI 인터페이스
+- 다중 사용자 동시 접속, 역할별 로그인/권한 분리
+- 다중 생산라인 (본 시스템은 단일 생산라인만 지원 — PDF 예시 화면 기준 "생산라인 1개 (단일 라인)")
+- 실제 DB 서버 연동 (SQLite 이상의 외부 DB는 범위 밖 — JSON 파일 저장소 채택, 근거는 5.2절 참조)
+- 파일 잠금/동시성 제어 (단일 프로세스 콘솔 앱 가정)
+
+## 4. 용어 및 상태 정의
+
+### 4.1 Sample (시료)
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| sample_id | str | `S-001`, `S-002` ... 등록 순서로 자동 채번 |
+| name | str | 시료명 |
+| avg_production_time | float | 개당 평균 생산시간 (분) |
+| yield_rate | float | 수율. 정상 시료 수 / 총 생산 시료 수 (0~1). 예: 100개 생산 중 정상 90개 = 0.9 |
+| stock | int | 현재 재고 수량 (등록 시 기본값 0, 이후 생산 완료로 증가, 출고로 감소) |
+
+### 4.2 Order (주문)
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| order_id | str | `ORD-YYYYMMDD-NNNN` 형식, 해당 날짜 내 순번으로 자동 채번 |
+| sample_id | str | 참조하는 Sample의 ID |
+| customer_name | str | 고객명 |
+| quantity | int | 주문 수량 |
+| status | OrderStatus | 아래 4.3 참조 |
+| created_at | str | ISO8601 UTC 문자열, 주문 접수 시각 |
+
+### 4.3 OrderStatus (주문 상태)
+| 상태 | 의미 |
+|---|---|
+| RESERVED | 주문 접수 |
+| REJECTED | 주문 거절 — 정상 흐름 밖 상태이며 모니터링/생산라인 대상에서 완전히 제외 |
+| PRODUCING | 승인 완료 + 재고 부족으로 생산 중 (생산라인 큐에 등록된 상태) |
+| CONFIRMED | 승인 완료 + 출고 대기 (재고 충분) |
+| RELEASE | 출고 완료 |
+
+**상태 전이도:**
+```
+RESERVED --(거절)--> REJECTED
+RESERVED --(승인, 재고충분)--> CONFIRMED
+RESERVED --(승인, 재고부족)--> PRODUCING
+PRODUCING --(생산완료)--> CONFIRMED
+CONFIRMED --(출고처리)--> RELEASE
+```
+
+## 5. 기능 요구사항 (Functional Requirements)
+
+### 5.0 메인 메뉴
+애플리케이션 실행 시 아래 메뉴를 표시하고, 전체 시료/주문에 대한 요약 정보(등록 시료 종수, 총 재고, 전체 주문 건수, 생산라인 대기 건수 등)를 함께 노출한다.
+
+| 번호 | 메뉴 | 설명 |
+|---|---|---|
+| 1 | 시료 관리 | 신규 등록, 목록 조회, 이름 검색 |
+| 2 | 시료 주문 | 고객 주문 접수 |
+| 3 | 주문 승인/거절 | RESERVED 주문에 대한 승인·거절 처리 |
+| 4 | 모니터링 | 상태별 주문 수 및 시료별 재고 현황 확인 |
+| 5 | 생산라인 조회 | 현재 생산 중인 시료 및 대기 큐 확인 |
+| 6 | 출고 처리 | CONFIRMED 주문에 대한 출고 실행 |
+| 0 | 종료 | 애플리케이션 종료 |
+
+메뉴 번호 선택 후 잘못된 입력 시 안내 메시지를 표시하고 메인 메뉴로 복귀한다 (ConsoleMVC의 `MainController` 디스패치 패턴 재사용).
+
+### 5.1 시료 관리
+시료(Sample)는 시스템의 가장 기본이 되는 단위이며, 시스템에 등록된 시료만 주문 가능하다.
+
+- **FR-1.1 시료 등록**: `sample_id`(자동 채번), `name`, `avg_production_time`, `yield_rate`를 입력받아 신규 시료를 추가한다. 등록 시 `stock`은 0으로 초기화된다.
+  - `yield_rate`는 0 초과 1 이하 범위여야 하며, 범위를 벗어나면 등록을 거부하고 재입력을 요청한다.
+  - `avg_production_time`은 0보다 커야 한다.
+- **FR-1.2 시료 조회**: 등록된 모든 시료 목록을 `sample_id`, `name`, `avg_production_time`, `yield_rate`, 현재 재고와 함께 표시한다.
+- **FR-1.3 시료 검색**: 이름(부분 문자열, 대소문자 무관)으로 시료를 검색하여 일치하는 목록을 표시한다.
+
+### 5.2 시료 주문 (예약)
+고객이 시료를 요청하면 주문 담당자가 시스템에 주문을 생성한다.
+
+- **FR-2.1 주문 접수**: `sample_id`, `customer_name`, `quantity`를 입력받아 신규 주문을 생성한다.
+  - `sample_id`가 존재하지 않으면 오류를 표시하고 주문을 생성하지 않는다.
+  - `quantity`는 1 이상의 정수여야 한다.
+  - 생성된 주문의 `status`는 `RESERVED`, `order_id`는 `ORD-YYYYMMDD-NNNN` 형식으로 자동 채번, `created_at`은 현재 시각(ISO8601)으로 설정한다.
+  - 접수 완료 시 주문번호와 현재 상태(RESERVED)를 표시한다.
+
+### 5.3 주문 승인/거절
+`RESERVED` 상태의 주문 목록을 확인하고, 특정 주문에 대해 승인 또는 거절을 결정한다.
+
+- **FR-3.1 접수된 주문 목록**: `RESERVED` 상태인 주문만 번호를 매겨 목록으로 표시한다 (주문번호, 고객명, 시료명, 수량, 상태).
+- **FR-3.2 주문 승인**: 목록에서 특정 주문을 선택해 승인한다. 승인 시 해당 시료의 현재 재고와 주문 수량을 비교하여 자동으로 분기한다:
+  - **재고 충분** (`stock >= quantity`): 즉시 `status`를 `CONFIRMED`로 전환한다. 재고는 이 시점에서 차감하지 않는다 (차감은 출고 시점, FR-6.1 참조).
+  - **재고 부족** (`stock < quantity`): 부족분을 계산해 생산라인 큐에 자동 등록하고 `status`를 `PRODUCING`으로 전환한다.
+    - 부족분 = `quantity - stock`
+    - 실생산량 = `ceil(부족분 / yield_rate)`
+    - 총생산시간(분) = `avg_production_time * 실생산량`
+    - 승인 확인 전, 부족분/실생산량/예상 소요시간을 화면에 안내한 뒤 최종 확인을 받는다 (PDF 예시 화면 참고).
+- **FR-3.3 주문 거절**: 목록에서 특정 주문을 선택해 거절하면 즉시 `status`를 `REJECTED`로 전환한다. 거절된 주문은 이후 모니터링/생산라인 대상에서 완전히 제외된다.
+
+### 5.4 모니터링
+담당자가 현재 시스템 상태를 한눈에 파악할 수 있도록 두 가지 하위 조회 기능을 제공한다.
+
+- **FR-4.1 주문량 확인**: `RESERVED`, `CONFIRMED`, `PRODUCING`, `RELEASE` 각 상태별 주문 건수를 집계해 표시한다. `REJECTED`는 유효한 주문이 아니므로 집계에서 제외한다.
+- **FR-4.2 재고량 확인**: 시료별 현재 재고 수량과 재고 상태를 표시한다. 재고 상태는 해당 시료의 "대기 수요"(아직 출고되지 않은, 즉 `RESERVED`+`PRODUCING`+`CONFIRMED` 상태 주문 수량 합)를 기준으로 판정한다:
+  | 상태 | 판정 기준 |
+  |---|---|
+  | 고갈 | `stock <= 0` |
+  | 부족 | `stock < 대기 수요` |
+  | 여유 | 그 외 (재고가 대기 수요 이상) |
+
+### 5.5 생산라인
+생산라인은 공장에서 시료 하나를 생산하는 설비 흐름이며, 하나의 생산라인은 시료를 한 번에 하나씩만 생산한다. 주문이 들어온 시료에 대해서만 생산한다. 본 시스템은 **단일 생산라인**만 지원한다.
+
+- **FR-5.1 실생산량/총생산시간 계산**: FR-3.2에서 계산한 값을 그대로 사용한다.
+  - 실생산량 = `ceil(부족분 / yield_rate)`
+  - 총생산시간 = `avg_production_time * 실생산량`
+- **FR-5.2 FIFO 스케줄링**: 생산라인 큐는 승인(FR-3.2)되어 `PRODUCING`으로 전환된 순서대로 처리한다(선입선출).
+- **FR-5.3 생산 완료 처리**: 큐의 맨 앞 주문이 총생산시간만큼 경과하면 생산이 완료된 것으로 간주하고:
+  1. 해당 시료의 `stock`을 실생산량만큼 증가시킨다.
+  2. 해당 주문의 `status`를 `PRODUCING` → `CONFIRMED`로 전환한다.
+  3. 큐에서 해당 항목을 제거하고 다음 대기 항목 처리를 시작한다.
+- **FR-5.4 생산 현황 표시**: 현재 생산 중인 항목의 정보(주문번호, 시료명, 주문량, 재고, 부족분, 실생산량, 진행률, 완료 예정 시각 등 — 표기 수준은 자유, PDF 예시 화면 형식 참고)를 표시한다.
+- **FR-5.5 대기 큐 표시**: 생산라인 대기 중인 주문 목록을 FIFO 순서대로(순번, 주문번호, 시료명, 주문량, 부족분, 실생산량, 예상 완료 시각) 표시한다.
+
+> **구현 노트**: 콘솔 애플리케이션은 실시간 백그라운드 스케줄러 없이, 사용자가 메뉴에 진입할 때(또는 시간 경과를 시뮬레이션하는 별도 트리거)마다 생산 진행 상태를 갱신하는 방식으로 구현한다. 정확한 진행률 계산 방식은 "생산 시작 시각 + 총생산시간"을 기준으로 경과 비율을 계산한다.
+
+### 5.6 출고 처리
+재고가 충분해져 `CONFIRMED` 상태가 된 주문에 대해 출고를 실행한다.
+
+- **FR-6.1 출고 가능 주문 목록**: `CONFIRMED` 상태 주문만 번호를 매겨 표시한다 (주문번호, 고객명, 시료명, 수량).
+- **FR-6.2 출고 실행**: 특정 주문을 선택해 출고를 실행하면:
+  1. 해당 시료의 `stock`에서 주문 수량만큼 차감한다.
+  2. 해당 주문의 `status`를 `CONFIRMED` → `RELEASE`로 전환한다.
+  3. 처리 결과(주문번호, 출고수량, 처리일시, 상태 변경)를 표시한다.
+
+## 6. 비기능 요구사항 (Non-Functional Requirements)
+
+- **NFR-1 영속성**: 모든 Sample/Order 데이터는 애플리케이션 종료 후에도 유지되어야 하며, 재시작 시 이전 상태를 그대로 복원해야 한다 (DataPersistence PoC의 atomic write 패턴 재사용).
+- **NFR-2 데이터 형식**: JSON 파일 기반 저장소를 채택한다 (`data/samples.json`, `data/orders.json`). 근거: 미션1 4개 PoC 모두 동일 JSON 스키마를 사용해 검증되었고, 콘솔 단일 프로세스 앱 규모에 적합하다.
+- **NFR-3 안전한 쓰기**: 파일 저장 시 임시 파일에 쓴 뒤 `os.replace`로 원자적 치환하여, 쓰기 도중 프로세스가 중단되어도 데이터가 손상되지 않도록 한다.
+- **NFR-4 테스트 가능성**: 모든 비즈니스 로직(승인 판정, 생산 계산, 재고 상태 판정 등)은 콘솔 I/O와 분리되어 단위 테스트가 가능해야 한다. 시간 의존 로직(생산 진행률 등)은 시간 소스를 주입 가능하게 설계한다 (DataMonitor `app.py`의 DI 패턴 참고).
+- **NFR-5 한글 콘솔 정렬**: 대시보드/목록 출력 시 한글(전각 문자) 폭을 고려한 정렬을 적용한다 (DataMonitor `render.py`의 `unicodedata.east_asian_width` 활용 패턴 재사용).
+- **NFR-6 문서화**: `CLAUDE.md`(개발 가이드/컨벤션), `PRD.md`(본 문서)를 저장소 루트에 유지한다.
+- **NFR-7 코드 품질**: MVC 구조로 Model/View/Controller 책임을 분리하고 (ConsoleMVC 패턴 준수), 매직 넘버 없이 상수화하며, 각 함수/클래스는 단일 책임을 갖는다.
+- **NFR-8 테스트**: pytest 기반 단위/통합 테스트를 작성하며, 임시 디렉터리(`tmp_path`)를 사용해 실제 `data/` 파일을 훼손하지 않는다 (DataPersistence `conftest.py` 패턴 재사용).
+
+## 7. 아키텍처 개요
+
+미션1의 4개 PoC를 통합하는 방향으로 설계한다.
+
+```
+SampleOrderSystem/
+  src/sampleorder/
+    models.py               # Sample, Order, OrderStatus (공통 도메인 모델)
+    exceptions.py            # NotFoundError, DuplicateError, ValidationError
+    json_store.py            # JsonFileStore: 원자적 JSON 파일 입출력 (DataPersistence 재사용)
+    repositories/
+      sample_repository.py   # SampleRepository CRUD + search
+      order_repository.py     # OrderRepository CRUD + list_by_status
+    services/
+      order_service.py        # 주문 접수, 승인/거절 판정 로직 (FR-2, FR-3)
+      production_service.py   # 생산라인 FIFO 큐, 생산 계산/완료 처리 (FR-5)
+      shipping_service.py      # 출고 처리 (FR-6)
+      monitoring_service.py    # 상태별 집계, 재고 상태 판정 (FR-4, DataMonitor 재사용)
+    views/                   # 콘솔 입출력 전담 (ConsoleMVC 패턴)
+      main_view.py, sample_view.py, order_view.py, approval_view.py,
+      monitoring_view.py, production_view.py, shipping_view.py
+    controllers/               # View ↔ Service 연결, 실제 로직은 services에 위임
+      main_controller.py, sample_controller.py, order_controller.py,
+      approval_controller.py, monitoring_controller.py,
+      production_controller.py, shipping_controller.py
+  data/
+    samples.json, orders.json
+  tools/
+    dummy_data_cli.py         # DummyDataGenerator 로직 재사용 (더미 데이터 시딩용, 배포 산출물 범위 밖의 보조 도구)
+  tests/
+    ...                        # 각 모듈 대응 pytest 테스트
+  main.py                     # 진입점 (build_main_controller().run())
+  CLAUDE.md
+  PRD.md
+  requirements.txt
+  pyproject.toml
+```
+
+**설계 원칙**:
+- ConsoleMVC의 Model/View/Controller 분리 구조를 골격으로 채택하되, 컨트롤러가 직접 재고/승인/생산 계산 로직을 갖지 않고 `services/` 계층에 위임하여 테스트 용이성을 높인다.
+- DataPersistence의 `JsonFileStore`/Repository CRUD 패턴, 예외 처리(`NotFoundError`, `DuplicateError`)를 그대로 재사용한다.
+- DataMonitor의 집계/상태 판정 로직(`order_status_counts`, `stock_status`)과 렌더링 유틸을 `monitoring_service.py`/`views`에 이식한다.
+- DummyDataGenerator의 시료/고객 풀, 가중치 기반 상태 분포 로직은 초기 데모 데이터 시딩 도구로 재사용한다 (제품 기능은 아님).
+
+## 8. 데이터 모델 요약
+
+```python
+class OrderStatus(Enum):
+    RESERVED = "RESERVED"
+    REJECTED = "REJECTED"
+    PRODUCING = "PRODUCING"
+    CONFIRMED = "CONFIRMED"
+    RELEASE = "RELEASE"
+
+@dataclass
+class Sample:
+    sample_id: str
+    name: str
+    avg_production_time: float
+    yield_rate: float
+    stock: int = 0
+
+@dataclass
+class Order:
+    order_id: str
+    sample_id: str
+    customer_name: str
+    quantity: int
+    status: OrderStatus = OrderStatus.RESERVED
+    created_at: str
+```
+
+## 9. 인수 기준 (Acceptance Criteria)
+
+- [ ] 시료 등록/조회/검색이 모두 콘솔 메뉴에서 동작하고 데이터가 `data/samples.json`에 영속화된다.
+- [ ] 주문 접수 시 `RESERVED` 상태로 생성되고 `ORD-YYYYMMDD-NNNN` 형식 ID가 부여된다.
+- [ ] 재고 충분 시 승인하면 즉시 `CONFIRMED`, 재고 부족 시 승인하면 `PRODUCING`으로 전환되고 생산라인 큐에 등록된다.
+- [ ] 거절 시 즉시 `REJECTED`로 전환되고 이후 모니터링/생산라인 목록에 노출되지 않는다.
+- [ ] 생산라인은 FIFO로 큐를 처리하며, 실생산량(`ceil(부족분/수율)`)과 총생산시간(`평균생산시간*실생산량`)이 명세대로 계산된다.
+- [ ] 생산 완료 시 재고가 증가하고 해당 주문이 `PRODUCING → CONFIRMED`로 자동 전환된다.
+- [ ] 모니터링 메뉴에서 상태별 주문 수(REJECTED 제외)와 시료별 재고 상태(여유/부족/고갈)가 정확히 표시된다.
+- [ ] 출고 처리 시 `CONFIRMED → RELEASE` 전환과 재고 차감이 함께 일어난다.
+- [ ] 애플리케이션을 재시작해도 이전에 등록/처리한 시료·주문 데이터가 유지된다.
+- [ ] pytest 테스트 스위트가 모든 서비스 계층 로직(승인 판정, 생산 계산, 재고 상태 판정, CRUD)에 대해 통과한다.
+
+## 10. 참고 자료
+
+- 과제 명세: `[CRA_AI] Day3_개인과제_반도체시료관리_r1 2.pdf` (본 저장소 루트)
+- 참고 구현 (미션1 PoC, 동일 워크스페이스 내 위치):
+  - `../ConsoleMVC` — MVC 스켈레톤 구조
+  - `../DataPersistence` — JSON 영속성 계층 (`src/sampleorder/`)
+  - `../DataMonitor` — 실시간 모니터링/집계 로직 (`datamonitor/`)
+  - `../DummyDataGenerator` — 더미 데이터 생성 로직 (`src/dummydata/`)
