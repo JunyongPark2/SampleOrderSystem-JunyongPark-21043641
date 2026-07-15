@@ -6,7 +6,9 @@ from sampleorder.services.calculations import (
     STOCK_SHORTAGE,
     STOCK_SUFFICIENT,
     actual_yield,
+    available_stock,
     pending_demand,
+    reserved_qty,
     shortage,
     stock_status,
     total_production_time,
@@ -59,6 +61,26 @@ def test_pending_demand_excludes_rejected_and_release():
         _order("S-002", 999, OrderStatus.RESERVED),
     ]
     assert pending_demand(orders, "S-001") == 60
+
+
+def test_reserved_qty_includes_only_confirmed_and_producing():
+    orders = [
+        _order("S-001", 10, OrderStatus.RESERVED),
+        _order("S-001", 20, OrderStatus.PRODUCING),
+        _order("S-001", 30, OrderStatus.CONFIRMED),
+        _order("S-001", 999, OrderStatus.REJECTED),
+        _order("S-001", 999, OrderStatus.RELEASE),
+        _order("S-002", 999, OrderStatus.CONFIRMED),
+    ]
+    assert reserved_qty(orders, "S-001") == 50
+
+
+def test_available_stock_subtracts_reserved_qty():
+    assert available_stock(stock=100, reserved_qty=40) == 60
+
+
+def test_available_stock_clamps_to_zero_when_reserved_exceeds_stock():
+    assert available_stock(stock=60, reserved_qty=100) == 0
 
 
 def test_stock_status_depleted_when_stock_non_positive():

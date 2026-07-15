@@ -3,6 +3,7 @@ import math
 from sampleorder.models import Order, OrderStatus
 
 _PENDING_STATUSES = {OrderStatus.RESERVED, OrderStatus.PRODUCING, OrderStatus.CONFIRMED}
+_RESERVED_STATUSES = {OrderStatus.CONFIRMED, OrderStatus.PRODUCING}
 
 STOCK_DEPLETED = "고갈"
 STOCK_SHORTAGE = "부족"
@@ -29,6 +30,18 @@ def pending_demand(orders: list, sample_id: str) -> int:
         for order in orders
         if order.sample_id == sample_id and order.status in _PENDING_STATUSES
     )
+
+
+def reserved_qty(orders: list, sample_id: str) -> int:
+    return sum(
+        order.quantity
+        for order in orders
+        if order.sample_id == sample_id and order.status in _RESERVED_STATUSES
+    )
+
+
+def available_stock(stock: int, reserved_qty: int) -> int:
+    return max(stock - reserved_qty, 0)
 
 
 def stock_status(stock: int, pending_demand_qty: int) -> str:
