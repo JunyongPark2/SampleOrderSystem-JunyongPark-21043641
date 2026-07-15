@@ -183,47 +183,7 @@ CONFIRMED --(출고처리)--> RELEASE
 
 ## 7. 아키텍처 개요
 
-미션1의 4개 PoC를 통합하는 방향으로 설계한다.
-
-```
-SampleOrderSystem/
-  src/sampleorder/
-    models.py               # Sample, Order, OrderStatus (공통 도메인 모델)
-    exceptions.py            # NotFoundError, DuplicateError, ValidationError
-    json_store.py            # JsonFileStore: 원자적 JSON 파일 입출력 (DataPersistence 재사용)
-    repositories/
-      sample_repository.py   # SampleRepository CRUD + search
-      order_repository.py     # OrderRepository CRUD + list_by_status
-    services/
-      order_service.py        # 주문 접수, 승인/거절 판정 로직 (FR-2, FR-3)
-      production_service.py   # 생산라인 FIFO 큐, 생산 계산/완료 처리 (FR-5)
-      shipping_service.py      # 출고 처리 (FR-6)
-      monitoring_service.py    # 상태별 집계, 재고 상태 판정 (FR-4, DataMonitor 재사용)
-    views/                   # 콘솔 입출력 전담 (ConsoleMVC 패턴)
-      main_view.py, sample_view.py, order_view.py, approval_view.py,
-      monitoring_view.py, production_view.py, shipping_view.py
-    controllers/               # View ↔ Service 연결, 실제 로직은 services에 위임
-      main_controller.py, sample_controller.py, order_controller.py,
-      approval_controller.py, monitoring_controller.py,
-      production_controller.py, shipping_controller.py
-  data/
-    samples.json, orders.json
-  tools/
-    dummy_data_cli.py         # DummyDataGenerator 로직 재사용 (더미 데이터 시딩용, 배포 산출물 범위 밖의 보조 도구)
-  tests/
-    ...                        # 각 모듈 대응 pytest 테스트
-  main.py                     # 진입점 (build_main_controller().run())
-  CLAUDE.md
-  PRD.md
-  requirements.txt
-  pyproject.toml
-```
-
-**설계 원칙**:
-- ConsoleMVC의 Model/View/Controller 분리 구조를 골격으로 채택하되, 컨트롤러가 직접 재고/승인/생산 계산 로직을 갖지 않고 `services/` 계층에 위임하여 테스트 용이성을 높인다.
-- DataPersistence의 `JsonFileStore`/Repository CRUD 패턴, 예외 처리(`NotFoundError`, `DuplicateError`)를 그대로 재사용한다.
-- DataMonitor의 집계/상태 판정 로직(`order_status_counts`, `stock_status`)과 렌더링 유틸을 `monitoring_service.py`/`views`에 이식한다.
-- DummyDataGenerator의 시료/고객 풀, 가중치 기반 상태 분포 로직은 초기 데모 데이터 시딩 도구로 재사용한다 (제품 기능은 아님).
+미션1의 4개 PoC(ConsoleMVC/DataPersistence/DataMonitor/DummyDataGenerator)를 통합하는 MVC + Service + Repository 계층 구조로 설계한다. 디렉터리 구조, 계층별 책임, PoC 재사용 매핑(실제 클래스/함수명), 핵심 유스케이스 시퀀스, 영속성·예외·테스트 전략은 [`ARCHITECTURE.md`](./ARCHITECTURE.md)에 상세히 기술한다 — 본 절에서는 중복 서술하지 않는다.
 
 ## 8. 데이터 모델 요약
 
