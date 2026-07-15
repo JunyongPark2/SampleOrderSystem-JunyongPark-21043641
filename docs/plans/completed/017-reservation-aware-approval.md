@@ -96,7 +96,7 @@ docs/adr/ADR-0004-*.md                       (신규)
 
 ## 완료 조건
 
-- [ ] `.venv/bin/python -m pytest -q` 전체 통과.
-- [ ] 배경 절의 재현 시나리오(A 100 → B 60 → B 출고 → A 생산완료 → A 출고)를 `python main.py`로 수동 재현했을 때, B 승인 시점에 재고 부족(`PRODUCING`)으로 정확히 분기되고, 최종적으로 `sample.stock`이 음수가 되지 않음을 확인.
-- [ ] PRD.md/SPEC.md/ARCHITECTURE.md, 신규 ADR-0004에 이번 결정이 반영됨.
-- [ ] 작업 단위별로 커밋 완료.
+- [x] `.venv/bin/python -m pytest -q` 전체 통과.
+- [x] 배경 절의 재현 시나리오(A 100 → B 60 → B 출고 → A 생산완료 → A 출고)를 임시 데이터 디렉터리 기반 서비스 계층 재현 스크립트로 검증(실제 `data/`는 건드리지 않음) — B 승인 시점에 재고 부족(`SHORTAGE`/`PRODUCING`)으로 정확히 분기됨을 확인. 출고 방어 검증도 별도로 재현해 `stock < quantity`일 때 `InsufficientStockError`가 발생하고 `stock`이 변경되지 않음을 확인.
+- [x] PRD.md/SPEC.md/ARCHITECTURE.md, 신규 ADR-0004에 이번 결정이 반영됨.
+- [x] 작업 단위별로 커밋 완료.
