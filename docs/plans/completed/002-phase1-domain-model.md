@@ -47,5 +47,12 @@ tests/test_models.py
 
 ## 완료 조건
 
-- [ ] `tests/test_models.py` 전체 통과.
-- [ ] 이후 Phase에서 이 모델/예외를 그대로 import해 사용할 수 있음(수정 없이).
+- [x] `tests/test_models.py` 전체 통과.
+- [x] 이후 Phase에서 이 모델/예외를 그대로 import해 사용할 수 있음(수정 없이).
+
+## 진행 기록
+
+- `models.py`: `OrderStatus` Enum(5개 값), `Sample`/`Order` dataclass 구현.
+- **PRD.md §8 예시 코드와의 차이**: PRD 스니펫은 `Order`에서 `status: OrderStatus = OrderStatus.RESERVED` 뒤에 기본값 없는 `created_at: str`을 두었는데, 이는 Python dataclass 규칙(기본값 없는 필드는 기본값 있는 필드보다 앞에 와야 함)을 위반해 그대로 옮기면 `TypeError`가 난다. `created_at`을 `status`보다 앞으로 옮겨 `status`만 기본값을 갖도록 재배치했다(필드 이름/타입/기본값 자체는 PRD와 동일, 순서만 조정). 사소한 오타 수준이라 PRD.md 수정 없이 이 기록으로 남긴다.
+- `exceptions.py`: `NotFoundError(entity_name, entity_id)`, `DuplicateError(entity_name, entity_id)`, `ValidationError(message)` — 메시지에 두 값이 모두 포함되도록 구현.
+- `tests/test_models.py` 6개 테스트(기본값, Enum 5개 값, 각 예외 메시지) 작성 및 통과 확인: `pytest tests/test_models.py -q` → 6 passed.
