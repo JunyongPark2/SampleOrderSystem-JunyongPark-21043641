@@ -8,6 +8,8 @@ from sampleorder.repositories.order_repository import OrderRepository
 from sampleorder.repositories.sample_repository import SampleRepository
 from sampleorder.services import calculations
 from sampleorder.services.production_service import ProductionService
+from sampleorder.services.sample_lookup import sample_name_map
+from sampleorder.services.validation import validate_int
 
 SAMPLE_NOT_FOUND_ERROR = "존재하지 않는 시료 ID입니다. 주문을 생성하지 않았습니다."
 QUANTITY_ERROR = "주문 수량은 1 이상의 정수여야 합니다. 다시 입력해주세요."
@@ -44,9 +46,7 @@ class OrderService:
             raise ValidationError(SAMPLE_NOT_FOUND_ERROR)
 
     def validate_quantity(self, quantity) -> int:
-        if not isinstance(quantity, int) or isinstance(quantity, bool) or quantity < 1:
-            raise ValidationError(QUANTITY_ERROR)
-        return quantity
+        return validate_int(quantity, 1, QUANTITY_ERROR)
 
     def create_order(self, sample_id: str, customer_name: str, quantity: int) -> Order:
         self.validate_sample_id(sample_id)
@@ -107,4 +107,4 @@ class OrderService:
         return self._order_repo.update(order_id, status=OrderStatus.REJECTED)
 
     def sample_name_map(self, orders: list) -> dict:
-        return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}
+        return sample_name_map(orders, self._sample_repo)

@@ -6,6 +6,7 @@ from sampleorder.exceptions import InsufficientStockError
 from sampleorder.models import Order, OrderStatus
 from sampleorder.repositories.order_repository import OrderRepository
 from sampleorder.repositories.sample_repository import SampleRepository
+from sampleorder.services.sample_lookup import sample_name_map
 
 INSUFFICIENT_STOCK_ERROR = "재고가 부족하여 출고할 수 없습니다. 재고를 확인해주세요."
 
@@ -34,4 +35,4 @@ class ShippingService:
         return ReleaseResult(order=updated_order, processed_at=now_fn())
 
     def sample_name_map(self, orders: list) -> dict:
-        return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}
+        return sample_name_map(orders, self._sample_repo)

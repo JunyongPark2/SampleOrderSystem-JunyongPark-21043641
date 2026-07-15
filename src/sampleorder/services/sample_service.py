@@ -1,6 +1,7 @@
 from sampleorder.exceptions import ValidationError
 from sampleorder.models import Sample
 from sampleorder.repositories.sample_repository import SampleRepository
+from sampleorder.services.validation import validate_int
 
 AVG_PRODUCTION_TIME_ERROR = "평균 생산시간은 0보다 커야 합니다. 다시 입력해주세요."
 YIELD_RATE_ERROR = "수율은 0 초과 1 이하 값이어야 합니다. 다시 입력해주세요."
@@ -22,9 +23,7 @@ class SampleService:
         return yield_rate
 
     def validate_stock(self, stock) -> int:
-        if not isinstance(stock, int) or isinstance(stock, bool) or stock < 0:
-            raise ValidationError(STOCK_ERROR)
-        return stock
+        return validate_int(stock, 0, STOCK_ERROR)
 
     def register(
         self, name: str, avg_production_time: float, yield_rate: float, stock: int = 0
