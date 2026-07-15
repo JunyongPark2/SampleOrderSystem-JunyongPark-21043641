@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-from sampleorder.exceptions import NotFoundError
 from sampleorder.json_store import JsonFileStore
 from sampleorder.models import Order, OrderStatus
+from sampleorder.repositories._record_utils import find_record
 
 
 def _to_dict(order: Order) -> dict:
@@ -59,10 +59,8 @@ class OrderRepository:
         return order
 
     def get(self, order_id: str) -> Order:
-        for record in self._store.load():
-            if record["order_id"] == order_id:
-                return _to_order(record)
-        raise NotFoundError("Order", order_id)
+        record = find_record(self._store.load(), "order_id", order_id, "Order")
+        return _to_order(record)
 
     def list_all(self) -> list:
         return [_to_order(record) for record in self._store.load()]
@@ -72,11 +70,9 @@ class OrderRepository:
 
     def update(self, order_id: str, **fields) -> Order:
         records = self._store.load()
-        for record in records:
-            if record["order_id"] == order_id:
-                if "status" in fields and isinstance(fields["status"], OrderStatus):
-                    fields = {**fields, "status": fields["status"].value}
-                record.update(fields)
-                self._store.save(records)
-                return _to_order(record)
-        raise NotFoundError("Order", order_id)
+        record = find_record(records, "order_id", order_id, "Order")
+        if "status" in fields and isinstance(fields["status"], OrderStatus):
+            fields = {**fields, "status": fields["status"].value}
+        record.update(fields)
+        self._store.save(records)
+        return _to_order(record)

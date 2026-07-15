@@ -1,6 +1,6 @@
-from sampleorder.exceptions import NotFoundError
 from sampleorder.json_store import JsonFileStore
 from sampleorder.models import Sample
+from sampleorder.repositories._record_utils import find_record
 
 
 def _to_dict(sample: Sample) -> dict:
@@ -46,10 +46,8 @@ class SampleRepository:
         return sample
 
     def get(self, sample_id: str) -> Sample:
-        for record in self._store.load():
-            if record["sample_id"] == sample_id:
-                return _to_sample(record)
-        raise NotFoundError("Sample", sample_id)
+        record = find_record(self._store.load(), "sample_id", sample_id, "Sample")
+        return _to_sample(record)
 
     def list_all(self) -> list:
         return [_to_sample(record) for record in self._store.load()]
@@ -60,9 +58,7 @@ class SampleRepository:
 
     def update(self, sample_id: str, **fields) -> Sample:
         records = self._store.load()
-        for record in records:
-            if record["sample_id"] == sample_id:
-                record.update(fields)
-                self._store.save(records)
-                return _to_sample(record)
-        raise NotFoundError("Sample", sample_id)
+        record = find_record(records, "sample_id", sample_id, "Sample")
+        record.update(fields)
+        self._store.save(records)
+        return _to_sample(record)
