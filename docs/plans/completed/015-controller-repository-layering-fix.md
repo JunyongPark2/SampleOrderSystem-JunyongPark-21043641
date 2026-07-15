@@ -1,6 +1,6 @@
 # Controller의 Repository 직접 접근 제거 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** `ApprovalController`와 `ShippingController`가 `sample_repository`를 직접 주입받아 `self._sample_repo.get(...)`을 호출하는 것을 제거하고, 시료명 조회를 각 컨트롤러가 이미 갖고 있는 Service(`OrderService`, `ShippingService`)를 통해서만 하도록 바꾼다. 이는 ARCHITECTURE.md §1("의존 방향은 항상 위→아래 한 방향... `controllers`는 `services`만 안다")과 ADR-0002("controllers/... → services/... → repositories/...의 단방향 의존")를 코드가 어기고 있던 것을 바로잡는 작업이다 — 두 문서 모두 이미 올바른 원칙을 서술하고 있으므로 문서 수정은 필요 없고 코드만 원칙에 맞춘다.
 
@@ -27,7 +27,7 @@
 **Interfaces:**
 - Produces: `OrderService.sample_name_map(orders: list[Order]) -> dict[str, str]`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `tests/test_order_service.py`에 추가:
 
@@ -39,12 +39,12 @@ def test_sample_name_map_returns_name_per_sample_id(order_service, sample_reposi
     assert result == {"S-001": "실리콘 웨이퍼-8인치"}
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `.venv/bin/python -m pytest tests/test_order_service.py -v`
 Expected: `AttributeError: 'OrderService' object has no attribute 'sample_name_map'`
 
-- [ ] **Step 3: 최소 구현 작성**
+- [x] **Step 3: 최소 구현 작성**
 
 `src/sampleorder/services/order_service.py`의 `OrderService` 클래스에 메서드 추가(다른 메서드 순서/내용은 변경하지 않음):
 
@@ -53,11 +53,11 @@ Expected: `AttributeError: 'OrderService' object has no attribute 'sample_name_m
         return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}
 ```
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [x] **Step 4: 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest tests/test_order_service.py -v` → 전부 PASS.
 
-- [ ] **Step 5: `ApprovalController`에서 `sample_repository` 제거**
+- [x] **Step 5: `ApprovalController`에서 `sample_repository` 제거**
 
 `src/sampleorder/controllers/approval_controller.py` 전체를 아래로 교체:
 
@@ -111,23 +111,23 @@ class ApprovalController:
         self._view.show_approval_result(updated, "RESERVED")
 ```
 
-- [ ] **Step 6: `main.py` 생성자 호출 수정**
+- [x] **Step 6: `main.py` 생성자 호출 수정**
 
 `main.py`에서 `ApprovalController(order_service, ApprovalView(), sample_repo)` →
 `ApprovalController(order_service, ApprovalView())`로 수정.
 
-- [ ] **Step 7: 전체 테스트 통과 확인**
+- [x] **Step 7: 전체 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest -q` → 전체 스위트 통과.
 
-- [ ] **Step 8: 수동 CLI 검증**
+- [x] **Step 8: 수동 CLI 검증**
 
 ```bash
 python main.py
 ```
 `[3] 주문 승인/거절` 메뉴에서 예약 목록의 시료명이 이전과 동일하게 표시되는지, 승인/거절이 정상 동작하는지 확인.
 
-- [ ] **Step 9: 커밋**
+- [x] **Step 9: 커밋**
 
 ```bash
 git add src/sampleorder/services/order_service.py src/sampleorder/controllers/approval_controller.py tests/test_order_service.py main.py
@@ -147,7 +147,7 @@ git commit -m "refactor: remove ApprovalController's direct repository access"
 **Interfaces:**
 - Produces: `ShippingService.sample_name_map(orders: list[Order]) -> dict[str, str]`
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `tests/test_shipping_service.py`에 추가:
 
@@ -159,12 +159,12 @@ def test_sample_name_map_returns_name_per_sample_id(shipping_service, sample_rep
     assert result == {"S-001": "SiC 파워기판-6인치"}
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [x] **Step 2: 테스트 실패 확인**
 
 Run: `.venv/bin/python -m pytest tests/test_shipping_service.py -v`
 Expected: `AttributeError: 'ShippingService' object has no attribute 'sample_name_map'`
 
-- [ ] **Step 3: 최소 구현 작성**
+- [x] **Step 3: 최소 구현 작성**
 
 `src/sampleorder/services/shipping_service.py`의 `ShippingService` 클래스에 메서드 추가:
 
@@ -173,11 +173,11 @@ Expected: `AttributeError: 'ShippingService' object has no attribute 'sample_nam
         return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}
 ```
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [x] **Step 4: 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest tests/test_shipping_service.py -v` → 전부 PASS.
 
-- [ ] **Step 5: `ShippingController`에서 `sample_repository` 제거**
+- [x] **Step 5: `ShippingController`에서 `sample_repository` 제거**
 
 `src/sampleorder/controllers/shipping_controller.py` 전체를 아래로 교체:
 
@@ -210,23 +210,23 @@ class ShippingController:
         self._view.show_release_result(result)
 ```
 
-- [ ] **Step 6: `main.py` 생성자 호출 수정**
+- [x] **Step 6: `main.py` 생성자 호출 수정**
 
 `main.py`에서 `ShippingController(shipping_service, ShippingView(), sample_repo)` →
 `ShippingController(shipping_service, ShippingView())`로 수정.
 
-- [ ] **Step 7: 전체 테스트 통과 확인**
+- [x] **Step 7: 전체 테스트 통과 확인**
 
 Run: `.venv/bin/python -m pytest -q` → 전체 스위트 통과.
 
-- [ ] **Step 8: 수동 CLI 검증**
+- [x] **Step 8: 수동 CLI 검증**
 
 ```bash
 python main.py
 ```
 `[6] 출고 처리` 메뉴에서 출고 대기 목록의 시료명이 이전과 동일하게 표시되는지, 출고 처리가 정상 동작하는지 확인.
 
-- [ ] **Step 9: 커밋**
+- [x] **Step 9: 커밋**
 
 ```bash
 git add src/sampleorder/services/shipping_service.py src/sampleorder/controllers/shipping_controller.py tests/test_shipping_service.py main.py
@@ -237,7 +237,7 @@ git commit -m "refactor: remove ShippingController's direct repository access"
 
 ## 완료 조건
 
-- [ ] `.venv/bin/python -m pytest -q` 전체 통과.
-- [ ] `ApprovalController`, `ShippingController` 생성자에 `sample_repository` 파라미터가 남아있지 않음(`grep -rn "sample_repo" src/sampleorder/controllers/` 결과 없음).
-- [ ] `python main.py`에서 메뉴 3(승인/거절), 6(출고)의 시료명 표시·동작이 이전과 동일함을 수동 확인.
-- [ ] Task별로 커밋 완료(총 2개 커밋).
+- [x] `.venv/bin/python -m pytest -q` 전체 통과.
+- [x] `ApprovalController`, `ShippingController` 생성자에 `sample_repository` 파라미터가 남아있지 않음(`grep -rn "sample_repo" src/sampleorder/controllers/` 결과 없음).
+- [x] `python main.py`에서 메뉴 3(승인/거절), 6(출고)의 시료명 표시·동작이 이전과 동일함을 수동 확인.
+- [x] Task별로 커밋 완료(총 2개 커밋).
