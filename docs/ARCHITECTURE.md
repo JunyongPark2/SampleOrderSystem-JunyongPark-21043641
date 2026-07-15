@@ -109,7 +109,7 @@ ApprovalController.approve(order_id)
            ProductionService.enqueue(order_id, sample_id, shortage, actual_yield, total_time)
          preview.kind == SUFFICIENT:
            OrderRepository.update(order_id, status=CONFIRMED)
-  → (N) 아무 상태도 변경하지 않고 RESERVED로 유지 (SPEC.md §4.2 "거절과는 별개의 흐름")
+  → (N) OrderService.reject_order(order_id) → status = REJECTED (SPEC.md §4.2, §4.3의 거절과 동일 결과)
 ```
 
 `OrderService`는 `ProductionService`를 호출만 하고, 큐 자료구조(FIFO 리스트) 자체는 `ProductionService`가 소유한다 — 두 서비스가 같은 상태를 이중 관리하지 않도록 소유권을 한쪽에 고정한다.

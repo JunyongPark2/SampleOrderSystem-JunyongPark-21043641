@@ -41,6 +41,8 @@ class ApprovalController:
         self._view.show_shortage_preview(preview)
         confirm = self._view.prompt_shortage_confirm()
         if confirm == "N":
+            rejected = self._service.reject_order(order_id)
+            self._view.show_rejection_result(rejected)
             return
         updated = self._service.confirm_approval(order_id, preview)
         self._view.show_approval_result(updated, "RESERVED")
