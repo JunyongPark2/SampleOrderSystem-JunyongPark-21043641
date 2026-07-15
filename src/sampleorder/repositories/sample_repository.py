@@ -30,14 +30,16 @@ class SampleRepository:
     def _next_id(self, records: list) -> str:
         return f"S-{len(records) + 1:03d}"
 
-    def create(self, name: str, avg_production_time: float, yield_rate: float) -> Sample:
+    def create(
+        self, name: str, avg_production_time: float, yield_rate: float, stock: int = 0
+    ) -> Sample:
         records = self._store.load()
         sample = Sample(
             sample_id=self._next_id(records),
             name=name,
             avg_production_time=avg_production_time,
             yield_rate=yield_rate,
-            stock=0,
+            stock=stock,
         )
         records.append(_to_dict(sample))
         self._store.save(records)

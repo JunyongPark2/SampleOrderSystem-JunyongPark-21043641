@@ -3,9 +3,14 @@ import pytest
 from sampleorder.exceptions import NotFoundError
 
 
-def test_create_initializes_stock_to_zero(sample_repository):
+def test_create_defaults_stock_to_zero_when_omitted(sample_repository):
     sample = sample_repository.create("실리콘 웨이퍼", 0.5, 0.9)
     assert sample.stock == 0
+
+
+def test_create_uses_given_stock_value(sample_repository):
+    sample = sample_repository.create("실리콘 웨이퍼", 0.5, 0.9, stock=42)
+    assert sample.stock == 42
 
 
 def test_sample_ids_are_sequential(sample_repository):
