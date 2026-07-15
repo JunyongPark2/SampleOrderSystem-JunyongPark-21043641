@@ -48,6 +48,13 @@ tests/test_monitoring_service.py
 
 ## 완료 조건
 
-- [ ] `tests/test_monitoring_service.py` 전체 통과.
-- [ ] 수동 시나리오가 SPEC.md §5와 일치.
-- [ ] `monitoring_service.py`가 `calculations.py`의 함수만 재사용하고 판정 로직을 자체 재구현하지 않음.
+- [x] `tests/test_monitoring_service.py` 전체 통과.
+- [x] 수동 시나리오가 SPEC.md §5와 일치.
+- [x] `monitoring_service.py`가 `calculations.py`의 함수만 재사용하고 판정 로직을 자체 재구현하지 않음(`pending_demand`/`stock_status` 직접 호출, 재구현 없음).
+
+## 진행 기록
+
+- `services/monitoring_service.py`: `order_status_counts()`(RESERVED/CONFIRMED/PRODUCING/RELEASE만 집계, REJECTED 제외), `stock_report()`(`calculations.pending_demand`/`stock_status` 재사용).
+- `views/monitoring_view.py`, `controllers/monitoring_controller.py`: 하위 메뉴(`[1] 주문량 확인 [2] 재고량 확인 [0] 뒤로`) 디스패치, SPEC.md §5.2/5.3 표 형식 출력.
+- 테스트: `pytest tests/test_monitoring_service.py -q` → 3 passed(REJECTED 제외 집계, 고갈/부족/여유 3구간 판정, 대기수요에서 REJECTED/RELEASE 제외 확인). 전체 `pytest -q` → 58 passed.
+- 수동 시나리오: 시료 2종(여유/부족 각 1)과 주문 2건으로 두 하위 메뉴 모두 실행해 SPEC.md §5 예시 화면과 형식 일치 확인.
