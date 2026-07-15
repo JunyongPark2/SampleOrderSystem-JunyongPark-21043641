@@ -26,6 +26,9 @@ class SampleView:
     def prompt_yield_rate(self) -> str:
         return input("수율 > ").strip()
 
+    def prompt_stock(self) -> str:
+        return input("재고(ea) > ").strip()
+
     def show_validation_error(self, message: str) -> None:
         print(message)
 

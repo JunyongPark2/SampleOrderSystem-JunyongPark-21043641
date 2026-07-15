@@ -27,7 +27,8 @@ class SampleController:
         name = self._view.prompt_name()
         avg_production_time = self._prompt_avg_production_time()
         yield_rate = self._prompt_yield_rate()
-        sample = self._service.register(name, avg_production_time, yield_rate)
+        stock = self._prompt_stock()
+        sample = self._service.register(name, avg_production_time, yield_rate, stock)
         self._view.show_registration_result(sample)
 
     def _prompt_avg_production_time(self) -> float:
@@ -46,6 +47,16 @@ class SampleController:
             try:
                 value = float(raw)
                 self._service.validate_yield_rate(value)
+                return value
+            except (ValueError, ValidationError) as error:
+                self._view.show_validation_error(self._error_message(error))
+
+    def _prompt_stock(self) -> int:
+        while True:
+            raw = self._view.prompt_stock()
+            try:
+                value = int(raw)
+                self._service.validate_stock(value)
                 return value
             except (ValueError, ValidationError) as error:
                 self._view.show_validation_error(self._error_message(error))
