@@ -1,0 +1,15 @@
+[project]
+name = "sampleorder"
+version = "0.1.0"
+description = "반도체 시료 생산주문관리 시스템"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

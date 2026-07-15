@@ -55,6 +55,14 @@ data/.gitkeep
 
 ## 완료 조건
 
-- [ ] 디렉터리/파일 구조가 ARCHITECTURE.md §2와 일치.
-- [ ] `pytest --collect-only`, `python main.py`가 에러 없이 실행됨.
-- [ ] `git status`에서 의도한 파일만 추가됨을 확인.
+- [x] 디렉터리/파일 구조가 ARCHITECTURE.md §2와 일치.
+- [x] `pytest --collect-only`, `python main.py`가 에러 없이 실행됨.
+- [x] `git status`에서 의도한 파일만 추가됨을 확인.
+
+## 진행 기록
+
+- `pyproject.toml`(setuptools, `src/` 레이아웃), `requirements.txt`(pytest), `main.py`(placeholder) 생성.
+- `src/sampleorder/{repositories,services,views,controllers}/__init__.py`, `tests/__init__.py`, `data/.gitkeep` 생성.
+- `.gitignore`에 `__pycache__/`, `*.pyc`, `.pytest_cache/`, `*.egg-info/`, `data/*.json`, `.venv/` 추가.
+- `tools/` 디렉터리는 Phase 11(더미 데이터 도구)에서 실제 파일과 함께 생성하기로 하고 이번 Phase에서는 만들지 않음(빈 디렉터리는 git에 추적되지 않으므로 실익 없음) — ARCHITECTURE.md §2 구조와 차이 없음.
+- 검증: `.venv/bin/python -m pytest --collect-only` → 0 items 수집(에러 없음), `.venv/bin/python main.py` → `not implemented` 출력.
