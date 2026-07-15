@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -26,7 +27,7 @@ from sampleorder.views.production_view import ProductionView
 from sampleorder.views.sample_view import SampleView
 from sampleorder.views.shipping_view import ShippingView
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(os.environ.get("SAMPLEORDER_DATA_DIR", str(Path(__file__).parent / "data")))
 
 
 def build_main_controller() -> MainController:
