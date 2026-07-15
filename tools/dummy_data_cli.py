@@ -39,10 +39,8 @@ CUSTOMER_POOL = [
 ]
 
 ORDER_STATUS_WEIGHTS = [
-    (OrderStatus.RESERVED, 0.15),
-    (OrderStatus.CONFIRMED, 0.2),
-    (OrderStatus.PRODUCING, 0.15),
-    (OrderStatus.RELEASE, 0.4),
+    (OrderStatus.RESERVED, 0.3),
+    (OrderStatus.RELEASE, 0.6),
     (OrderStatus.REJECTED, 0.1),
 ]
 
