@@ -1,3 +1,4 @@
+from sampleorder.exceptions import InsufficientStockError
 from sampleorder.services.shipping_service import ShippingService
 from sampleorder.views.shipping_view import ShippingView
 
@@ -22,5 +23,9 @@ class ShippingController:
             return
 
         order = orders[int(choice) - 1]
-        result = self._service.release(order.order_id)
+        try:
+            result = self._service.release(order.order_id)
+        except InsufficientStockError as error:
+            self._view.show_insufficient_stock_error(error.message)
+            return
         self._view.show_release_result(result)

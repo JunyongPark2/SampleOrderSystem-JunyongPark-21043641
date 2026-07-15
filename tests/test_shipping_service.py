@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 
 import pytest
 
+from sampleorder.exceptions import InsufficientStockError
 from sampleorder.models import OrderStatus
-from sampleorder.services.shipping_service import ShippingService
+from sampleorder.services.shipping_service import INSUFFICIENT_STOCK_ERROR, ShippingService
 
 
 @pytest.fixture
@@ -24,6 +25,22 @@ def test_release_deducts_stock_and_transitions_to_release(
     assert sample_repository.get("S-001").stock == 50
     assert result.order.status == OrderStatus.RELEASE
     assert result.processed_at == fixed_now
+
+
+def test_release_raises_insufficient_stock_error_and_leaves_stock_unchanged(
+    shipping_service, sample_repository, order_repository
+):
+    sample_repository.create("A", 0.5, 0.9)
+    sample_repository.update("S-001", stock=40)
+    order = order_repository.create("S-001", "고객A", 100)
+    order_repository.update(order.order_id, status=OrderStatus.CONFIRMED)
+
+    with pytest.raises(InsufficientStockError) as excinfo:
+        shipping_service.release(order.order_id)
+
+    assert str(excinfo.value) == INSUFFICIENT_STOCK_ERROR
+    assert sample_repository.get("S-001").stock == 40
+    assert order_repository.get(order.order_id).status == OrderStatus.CONFIRMED
 
 
 def test_list_confirmed_orders_excludes_other_statuses(

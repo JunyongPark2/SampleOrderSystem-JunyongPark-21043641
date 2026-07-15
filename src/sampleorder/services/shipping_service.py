@@ -2,9 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from sampleorder.clock import utc_now
+from sampleorder.exceptions import InsufficientStockError
 from sampleorder.models import Order, OrderStatus
 from sampleorder.repositories.order_repository import OrderRepository
 from sampleorder.repositories.sample_repository import SampleRepository
+
+INSUFFICIENT_STOCK_ERROR = "재고가 부족하여 출고할 수 없습니다. 재고를 확인해주세요."
 
 
 @dataclass
@@ -24,6 +27,8 @@ class ShippingService:
     def release(self, order_id: str, now_fn=utc_now) -> ReleaseResult:
         order = self._order_repo.get(order_id)
         sample = self._sample_repo.get(order.sample_id)
+        if sample.stock < order.quantity:
+            raise InsufficientStockError(INSUFFICIENT_STOCK_ERROR)
         self._sample_repo.update(order.sample_id, stock=sample.stock - order.quantity)
         updated_order = self._order_repo.update(order_id, status=OrderStatus.RELEASE)
         return ReleaseResult(order=updated_order, processed_at=now_fn())

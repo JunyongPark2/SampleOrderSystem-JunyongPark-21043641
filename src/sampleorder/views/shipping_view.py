@@ -35,6 +35,9 @@ class ShippingView:
     def show_invalid_choice(self) -> None:
         print(INVALID_CHOICE_MESSAGE)
 
+    def show_insufficient_stock_error(self, message: str) -> None:
+        print(message)
+
     def show_release_result(self, result: ReleaseResult) -> None:
         print("출고 처리 완료.")
         print(f" 주문번호   {result.order.order_id}")
