@@ -1,6 +1,8 @@
-from sampleorder.exceptions import ValidationError
+from sampleorder.controllers._prompting import prompt_until_valid
 from sampleorder.services.sample_service import SampleService
 from sampleorder.views.sample_view import SampleView
+
+_NOT_A_NUMBER_MESSAGE = "숫자를 입력해주세요."
 
 
 class SampleController:
@@ -32,39 +34,31 @@ class SampleController:
         self._view.show_registration_result(sample)
 
     def _prompt_avg_production_time(self) -> float:
-        while True:
-            raw = self._view.prompt_avg_production_time()
-            try:
-                value = float(raw)
-                self._service.validate_avg_production_time(value)
-                return value
-            except (ValueError, ValidationError) as error:
-                self._view.show_validation_error(self._error_message(error))
+        return prompt_until_valid(
+            self._view.prompt_avg_production_time,
+            float,
+            self._service.validate_avg_production_time,
+            self._view.show_validation_error,
+            _NOT_A_NUMBER_MESSAGE,
+        )
 
     def _prompt_yield_rate(self) -> float:
-        while True:
-            raw = self._view.prompt_yield_rate()
-            try:
-                value = float(raw)
-                self._service.validate_yield_rate(value)
-                return value
-            except (ValueError, ValidationError) as error:
-                self._view.show_validation_error(self._error_message(error))
+        return prompt_until_valid(
+            self._view.prompt_yield_rate,
+            float,
+            self._service.validate_yield_rate,
+            self._view.show_validation_error,
+            _NOT_A_NUMBER_MESSAGE,
+        )
 
     def _prompt_stock(self) -> int:
-        while True:
-            raw = self._view.prompt_stock()
-            try:
-                value = int(raw)
-                self._service.validate_stock(value)
-                return value
-            except (ValueError, ValidationError) as error:
-                self._view.show_validation_error(self._error_message(error))
-
-    def _error_message(self, error: Exception) -> str:
-        if isinstance(error, ValidationError):
-            return error.message
-        return "숫자를 입력해주세요."
+        return prompt_until_valid(
+            self._view.prompt_stock,
+            int,
+            self._service.validate_stock,
+            self._view.show_validation_error,
+            _NOT_A_NUMBER_MESSAGE,
+        )
 
     def _list_all(self) -> None:
         samples = self._service.list_all()

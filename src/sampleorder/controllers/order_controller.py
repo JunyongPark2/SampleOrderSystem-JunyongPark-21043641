@@ -1,3 +1,4 @@
+from sampleorder.controllers._prompting import prompt_until_valid
 from sampleorder.exceptions import ValidationError
 from sampleorder.services.order_service import QUANTITY_ERROR, OrderService
 from sampleorder.views.order_view import OrderView
@@ -27,13 +28,10 @@ class OrderController:
         self._view.show_intake_result(order)
 
     def _prompt_quantity(self) -> int:
-        while True:
-            raw = self._view.prompt_quantity()
-            try:
-                quantity = int(raw)
-                self._service.validate_quantity(quantity)
-                return quantity
-            except ValueError:
-                self._view.show_error(QUANTITY_ERROR)
-            except ValidationError as error:
-                self._view.show_error(error.message)
+        return prompt_until_valid(
+            self._view.prompt_quantity,
+            int,
+            self._service.validate_quantity,
+            self._view.show_error,
+            QUANTITY_ERROR,
+        )

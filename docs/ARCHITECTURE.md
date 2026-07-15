@@ -57,6 +57,7 @@ SampleOrderSystem/
       main_controller.py         # 메뉴 디스패치 (ConsoleMVC MainController 패턴)
       sample_controller.py, order_controller.py, approval_controller.py,
       monitoring_controller.py, production_controller.py, shipping_controller.py
+      _prompting.py               # prompt_until_valid: 파싱→검증→재입력 루프 공용 헬퍼 (sample/order 컨트롤러 공용)
     clock.py                     # now_fn 기본값 및 타입 힌트 (DataMonitor DI 패턴)
   data/
     samples.json, orders.json, production_queue.json
