@@ -30,3 +30,8 @@ def sample_repository(sample_store):
 @pytest.fixture
 def order_repository(order_store, fixed_now):
     return OrderRepository(order_store, now_fn=lambda: fixed_now)
+
+
+@pytest.fixture
+def queue_store(tmp_path):
+    return JsonFileStore(tmp_path / "production_queue.json")

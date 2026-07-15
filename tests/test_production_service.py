@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from sampleorder.json_store import JsonFileStore
 from sampleorder.models import OrderStatus
 from sampleorder.services.production_service import ProductionService
 
@@ -172,3 +173,52 @@ def test_pending_queue_empty_when_only_head_present(
         order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
     )
     assert production_service.pending_queue(now_fn=lambda: fixed_now) == []
+
+
+def test_queue_survives_restart_via_store(
+    queue_store, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+
+    first_instance = ProductionService(order_repository, sample_repository, store=queue_store)
+    first_instance.enqueue(
+        order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
+    )
+
+    second_instance = ProductionService(order_repository, sample_repository, store=queue_store)
+    assert second_instance.queue_length() == 1
+
+    completion_time = fixed_now + timedelta(minutes=148)
+    second_instance.advance(now_fn=lambda: completion_time)
+    assert second_instance.queue_length() == 0
+    assert order_repository.get(order.order_id).status == OrderStatus.CONFIRMED
+
+    third_instance = ProductionService(order_repository, sample_repository, store=queue_store)
+    assert third_instance.queue_length() == 0
+
+
+def test_queue_restores_started_at_and_pending_order(
+    queue_store, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order1 = order_repository.create("S-001", "고객A", 100)
+    order2 = order_repository.create("S-001", "고객B", 50)
+
+    first_instance = ProductionService(order_repository, sample_repository, store=queue_store)
+    first_instance.enqueue(order1.order_id, "S-001", "A", 100, 100, 109, 10.0, now_fn=lambda: fixed_now)
+    first_instance.enqueue(order2.order_id, "S-001", "A", 50, 50, 55, 5.0, now_fn=lambda: fixed_now)
+
+    restored = ProductionService(order_repository, sample_repository, store=queue_store)
+    current = restored.current_item(now_fn=lambda: fixed_now)
+    assert current.item.order_id == order1.order_id
+    assert current.item.started_at == fixed_now
+    pending = restored.pending_queue(now_fn=lambda: fixed_now)
+    assert [p.item.order_id for p in pending] == [order2.order_id]
+
+
+def test_store_none_keeps_in_memory_only_behavior(sample_repository, order_repository, fixed_now):
+    service = ProductionService(order_repository, sample_repository)
+    order = order_repository.create("S-001", "고객A", 200)
+    service.enqueue(order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now)
+    assert service.queue_length() == 1
