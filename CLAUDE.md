@@ -12,7 +12,8 @@ docs/
 ├── adr/                                # Decisions that are hard to reverse or affect the whole system
 │   ├── ADR-0001-JSON파일기반영속성.md
 │   ├── ADR-0002-계층형MVC구조채택.md
-│   └── ADR-0003-생산진행상태갱신방식.md
+│   ├── ADR-0003-생산진행상태갱신방식.md
+│   └── ADR-0004-승인시점재고예약.md
 └── plans/
     └── active/                         # In-progress implementation plans (move to completed/ etc. once done)
         ├── 000-overview.md             # Overall plan goals/scope/shared risks·rollback/phase index
