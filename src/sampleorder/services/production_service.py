@@ -1,8 +1,9 @@
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sampleorder.clock import utc_now
+from sampleorder.models import OrderStatus
 
 
 @dataclass
@@ -15,6 +16,19 @@ class QueueItem:
     actual_yield_qty: int
     total_time: float
     started_at: datetime
+
+
+@dataclass
+class CurrentItem:
+    item: QueueItem
+    progress: float
+    eta: datetime
+
+
+@dataclass
+class PendingItem:
+    item: QueueItem
+    expected_completion: datetime
 
 
 class ProductionService:
@@ -50,3 +64,39 @@ class ProductionService:
         )
         self._queue.append(item)
         return item
+
+    def _elapsed_minutes(self, item: QueueItem, now: datetime) -> float:
+        return (now - item.started_at).total_seconds() / 60
+
+    def advance(self, now_fn=utc_now) -> None:
+        now = now_fn()
+        while self._queue and self._elapsed_minutes(self._queue[0], now) >= self._queue[0].total_time:
+            item = self._queue.popleft()
+            sample = self._sample_repo.get(item.sample_id)
+            self._sample_repo.update(item.sample_id, stock=sample.stock + item.actual_yield_qty)
+            self._order_repo.update(item.order_id, status=OrderStatus.CONFIRMED)
+            if self._queue:
+                self._queue[0].started_at = item.started_at + timedelta(minutes=item.total_time)
+
+    def current_item(self, now_fn=utc_now):
+        if not self._queue:
+            return None
+        head = self._queue[0]
+        now = now_fn()
+        if head.total_time <= 0:
+            progress = 1.0
+        else:
+            progress = min(1.0, self._elapsed_minutes(head, now) / head.total_time)
+        eta = head.started_at + timedelta(minutes=head.total_time)
+        return CurrentItem(item=head, progress=progress, eta=eta)
+
+    def pending_queue(self, now_fn=utc_now) -> list:
+        if len(self._queue) <= 1:
+            return []
+        current = self.current_item(now_fn)
+        cumulative = current.eta
+        results = []
+        for item in list(self._queue)[1:]:
+            cumulative = cumulative + timedelta(minutes=item.total_time)
+            results.append(PendingItem(item=item, expected_completion=cumulative))
+        return results

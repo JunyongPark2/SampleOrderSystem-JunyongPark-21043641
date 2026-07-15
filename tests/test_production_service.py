@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from sampleorder.models import OrderStatus
 from sampleorder.services.production_service import ProductionService
 
 
@@ -48,3 +49,126 @@ def test_enqueue_leaves_started_at_none_for_subsequent_items(production_service,
     )
     assert second.started_at is None
     assert production_service.queue_length() == 2
+
+
+def test_advance_does_nothing_before_total_time_elapses(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+    production_service.enqueue(
+        order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
+    )
+
+    almost_done = fixed_now + timedelta(minutes=147)
+    production_service.advance(now_fn=lambda: almost_done)
+
+    assert production_service.queue_length() == 1
+    assert order_repository.get(order.order_id).status == OrderStatus.RESERVED
+
+
+def test_advance_completes_item_and_updates_stock_and_status(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+    production_service.enqueue(
+        order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
+    )
+
+    completion_time = fixed_now + timedelta(minutes=148)
+    production_service.advance(now_fn=lambda: completion_time)
+
+    assert production_service.queue_length() == 0
+    assert order_repository.get(order.order_id).status == OrderStatus.CONFIRMED
+    assert sample_repository.get("S-001").stock == 185
+
+
+def test_advance_processes_multiple_completions_in_one_call(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order1 = order_repository.create("S-001", "고객A", 100)
+    order2 = order_repository.create("S-001", "고객B", 50)
+    production_service.enqueue(order1.order_id, "S-001", "A", 100, 100, 109, 10.0, now_fn=lambda: fixed_now)
+    production_service.enqueue(order2.order_id, "S-001", "A", 50, 50, 55, 5.0, now_fn=lambda: fixed_now)
+
+    far_future = fixed_now + timedelta(minutes=100)
+    production_service.advance(now_fn=lambda: far_future)
+
+    assert production_service.queue_length() == 0
+    assert order_repository.get(order1.order_id).status == OrderStatus.CONFIRMED
+    assert order_repository.get(order2.order_id).status == OrderStatus.CONFIRMED
+    assert sample_repository.get("S-001").stock == 109 + 55
+
+
+def test_advance_sets_next_item_started_at_to_previous_completion_time(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order1 = order_repository.create("S-001", "고객A", 100)
+    order2 = order_repository.create("S-001", "고객B", 50)
+    production_service.enqueue(order1.order_id, "S-001", "A", 100, 100, 109, 10.0, now_fn=lambda: fixed_now)
+    second_item = production_service.enqueue(
+        order2.order_id, "S-001", "A", 50, 50, 55, 5.0, now_fn=lambda: fixed_now
+    )
+    assert second_item.started_at is None
+
+    completion_time = fixed_now + timedelta(minutes=10)
+    production_service.advance(now_fn=lambda: completion_time)
+
+    assert production_service.queue_length() == 1
+    remaining = production_service.current_item(now_fn=lambda: completion_time)
+    assert remaining.item.order_id == order2.order_id
+    assert remaining.item.started_at == completion_time
+
+
+def test_current_item_progress_clamps_between_zero_and_one(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+    production_service.enqueue(
+        order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
+    )
+
+    at_start = production_service.current_item(now_fn=lambda: fixed_now)
+    at_half = production_service.current_item(now_fn=lambda: fixed_now + timedelta(minutes=74))
+    after_end = production_service.current_item(now_fn=lambda: fixed_now + timedelta(minutes=300))
+
+    assert at_start.progress == pytest.approx(0.0)
+    assert at_half.progress == pytest.approx(0.5)
+    assert after_end.progress == 1.0
+
+
+def test_current_item_returns_none_when_queue_empty(production_service, fixed_now):
+    assert production_service.current_item(now_fn=lambda: fixed_now) is None
+
+
+def test_pending_queue_excludes_head_and_accumulates_completion_time(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order1 = order_repository.create("S-001", "고객A", 100)
+    order2 = order_repository.create("S-001", "고객B", 50)
+    order3 = order_repository.create("S-001", "고객C", 30)
+    production_service.enqueue(order1.order_id, "S-001", "A", 100, 100, 109, 10.0, now_fn=lambda: fixed_now)
+    production_service.enqueue(order2.order_id, "S-001", "A", 50, 50, 55, 5.0, now_fn=lambda: fixed_now)
+    production_service.enqueue(order3.order_id, "S-001", "A", 30, 30, 33, 3.0, now_fn=lambda: fixed_now)
+
+    pending = production_service.pending_queue(now_fn=lambda: fixed_now)
+
+    assert [p.item.order_id for p in pending] == [order2.order_id, order3.order_id]
+    assert pending[0].expected_completion == fixed_now + timedelta(minutes=10 + 5)
+    assert pending[1].expected_completion == fixed_now + timedelta(minutes=10 + 5 + 3)
+
+
+def test_pending_queue_empty_when_only_head_present(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+    production_service.enqueue(
+        order.order_id, "S-001", "A", 200, 170, 185, 148.0, now_fn=lambda: fixed_now
+    )
+    assert production_service.pending_queue(now_fn=lambda: fixed_now) == []

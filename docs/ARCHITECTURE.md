@@ -125,10 +125,12 @@ ProductionService.advance(now)
       SampleRepository.update(item.sample_id, stock=+item.actual_yield)
       OrderRepository.update(item.order_id, status=CONFIRMED)
       if queue:
-          queue[0].started_at = now   # 다음 항목 시작 시각 재설정
+          queue[0].started_at = item.started_at + item.total_time   # 다음 항목은 "이전 항목의 이론적 완료 시각"부터 시작
 ```
 
 `while` 루프인 이유: 사용자가 오랫동안 메뉴에 들어오지 않아 큐 앞의 여러 항목이 한꺼번에 완료 조건을 만족할 수 있기 때문(시간 소스 주입 기반 시뮬레이션이므로 실제로도 발생 가능).
+
+다음 항목의 `started_at`을 완료 처리 시점의 `now`가 아니라 "이전 항목의 이론적 완료 시각"(`started_at + total_time`)으로 재설정하는 이유: `now`로 재설정하면, 오랫동안 메뉴에 들어오지 않아 한 번의 `advance()` 호출에서 `now`가 크게 점프한 경우 큐의 첫 항목만 완료되고 이후 항목은 시계가 `now` 시점부터 다시 0으로 시작해 버려, 위 "여러 항목이 한꺼번에 완료"되어야 하는 요구사항을 만족하지 못한다(Phase 7 구현 중 발견, `docs/plans/completed/008-phase7-production-line.md` 진행 기록 참고).
 
 ### 4.3 출고 처리 (FR-6.2)
 
