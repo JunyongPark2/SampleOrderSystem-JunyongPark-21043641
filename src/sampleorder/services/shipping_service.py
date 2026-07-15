@@ -27,3 +27,6 @@ class ShippingService:
         self._sample_repo.update(order.sample_id, stock=sample.stock - order.quantity)
         updated_order = self._order_repo.update(order_id, status=OrderStatus.RELEASE)
         return ReleaseResult(order=updated_order, processed_at=now_fn())
+
+    def sample_name_map(self, orders: list) -> dict:
+        return {order.sample_id: self._sample_repo.get(order.sample_id).name for order in orders}

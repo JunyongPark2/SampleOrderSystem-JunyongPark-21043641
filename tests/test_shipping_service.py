@@ -38,3 +38,10 @@ def test_list_confirmed_orders_excludes_other_statuses(
     result = shipping_service.list_confirmed_orders()
 
     assert [o.order_id for o in result] == [confirmed.order_id]
+
+
+def test_sample_name_map_returns_name_per_sample_id(shipping_service, sample_repository, order_repository):
+    sample_repository.create("SiC 파워기판-6인치", 0.8, 0.92, stock=100)
+    order = order_repository.create("S-001", "고객A", 10)
+    result = shipping_service.sample_name_map([order])
+    assert result == {"S-001": "SiC 파워기판-6인치"}
