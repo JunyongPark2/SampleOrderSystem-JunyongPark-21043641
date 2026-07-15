@@ -80,7 +80,7 @@ SampleOrderSystem/
   CLAUDE.md
   docs/
     PRD.md, SPEC.md, ARCHITECTURE.md
-    plans/active/
+    plans/completed/, plans/active/
   requirements.txt
   pyproject.toml
 ```

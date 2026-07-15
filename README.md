@@ -49,7 +49,7 @@ python3 main.py
 [0] 종료
 ```
 
-데이터는 `data/samples.json`, `data/orders.json`에 저장되며, 앱을 재시작해도 유지된다.
+데이터는 `data/samples.json`, `data/orders.json`, `data/production_queue.json`에 저장되며, 앱을 재시작해도 유지된다.
 
 ## 더미 데이터 생성
 
@@ -88,7 +88,7 @@ src/sampleorder/
   controllers/              # 메뉴 디스패치
 tools/
   dummy_data_cli.py        # 더미 데이터 생성 도구
-data/                       # samples.json, orders.json (런타임 생성, git 추적 제외)
+data/                       # samples.json, orders.json, production_queue.json (런타임 생성, git 추적 제외)
 tests/                      # pytest 테스트 스위트
 docs/                       # PRD, SPEC, ARCHITECTURE, ADR, 구현 계획
 ```
@@ -101,10 +101,3 @@ docs/                       # PRD, SPEC, ARCHITECTURE, ADR, 구현 계획
 - [`docs/adr/`](docs/adr/) — 되돌리기 어려운 설계 결정 기록
 - [`docs/plans/completed/`](docs/plans/completed/) — Phase별 구현 계획 및 진행 기록
 - [`CLAUDE.md`](CLAUDE.md) — 개발 가이드/컨벤션
-
-## 알려진 제한 사항
-
-생산라인 큐는 메모리에만 존재하며 JSON으로 영속화되지 않는다. `PRODUCING` 상태 주문이 있는
-채로 앱을 재시작하면 큐 자체(부족분/실생산량/총생산시간/시작 시각)가 사라져 해당 주문은 큐에
-다시 등록되지 않는 한 계속 `PRODUCING`에 머무른다. 자세한 내용은
-[`docs/plans/completed/000-overview.md`](docs/plans/completed/000-overview.md) §11 참고.
