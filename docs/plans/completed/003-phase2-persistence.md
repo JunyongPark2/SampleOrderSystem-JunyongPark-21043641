@@ -53,5 +53,15 @@ tests/test_order_repository.py
 
 ## 완료 조건
 
-- [ ] 세 테스트 파일 전체 통과.
-- [ ] 동시성/락 처리는 의도적으로 구현하지 않았음을 코드 주석이 아닌 이 문서로 남김(ADR-0001 참고).
+- [x] 세 테스트 파일 전체 통과.
+- [x] 동시성/락 처리는 의도적으로 구현하지 않았음을 코드 주석이 아닌 이 문서로 남김(ADR-0001 참고).
+
+## 진행 기록
+
+- `json_store.py`: `JsonFileStore.load()`(파일 없으면 `[]`), `save()`(`.tmp`에 쓴 뒤 `os.replace()`로 원자적 치환).
+- `repositories/sample_repository.py`: `create/get/list_all/search/update`, `sample_id`는 `len(records)+1` 기준 `S-NNN` 채번.
+- `repositories/order_repository.py`: `create/get/list_all/list_by_status/update`, `order_id`는 날짜별 최대 순번+1로 채번(`ORD-YYYYMMDD-NNNN`). `now_fn` 주입 가능(NFR-4, DataMonitor DI 패턴).
+- `update()`는 Repository에 비즈니스 규칙을 두지 않기 위해 필드를 그대로 덮어쓰기만 한다(ARCHITECTURE.md §1 "Repository: 비즈니스 규칙 없음"). ARCHITECTURE.md §4.2/§4.3의 `stock=+item.actual_yield`, `stock=-order.quantity` 표기는 "증감값을 계산해 넘긴다"는 의도의 의사코드로 해석했고, 실제 증감 계산(현재값+델타)은 이후 Phase의 Service 계층이 담당한다.
+- `tests/conftest.py`: `tmp_path` 기반 `sample_store`/`order_store`/`sample_repository`/`order_repository` fixture, 결정론적 `fixed_now` fixture(NFR-8/NFR-4) 추가.
+- 동시성/파일 락은 PRD.md §3 Out of Scope 및 ADR-0001에 따라 의도적으로 구현하지 않았다(단일 프로세스 콘솔 앱 전제).
+- 테스트: `pytest tests/test_json_store.py tests/test_sample_repository.py tests/test_order_repository.py -q` → 13 passed. `git status`로 `data/`가 테스트 실행 후에도 변경되지 않음을 확인.
