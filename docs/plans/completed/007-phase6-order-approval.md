@@ -56,5 +56,15 @@ tests/test_production_service.py                   (신규, enqueue만)
 
 ## 완료 조건
 
-- [ ] `tests/test_order_service.py`, `tests/test_production_service.py`(enqueue 부분) 전체 통과.
-- [ ] 수동 시나리오(재고 충분/부족/거절)가 SPEC.md §4와 일치.
+- [x] `tests/test_order_service.py`, `tests/test_production_service.py`(enqueue 부분) 전체 통과.
+- [x] 수동 시나리오(재고 충분/부족/거절)가 SPEC.md §4와 일치.
+
+## 진행 기록
+
+- `clock.py`: `NowFn` 타입과 `utc_now()`(timezone-aware) 기본 시간 소스 정의(NFR-4, DataMonitor DI 패턴).
+- `services/production_service.py`(신규): `QueueItem` dataclass + `ProductionService.enqueue()` — 큐가 비어있던 상태에서 등록되는 첫 항목만 `started_at`을 즉시 설정하고, 그 외에는 `None`으로 두어 Phase 7의 `advance()`가 앞 항목 완료 시 다음 항목 `started_at`을 설정하도록 설계(ARCHITECTURE.md §4.2).
+- `services/order_service.py` 확장: `ApprovalPreview` dataclass(`kind`=SUFFICIENT/SHORTAGE), `list_reserved_orders/preview_approval/confirm_approval/reject_order`. `OrderService` 생성자에 `production_service`를 3번째 인자로 추가(재고 부족 승인 시 큐 등록에 필요).
+- `views/approval_view.py`, `controllers/approval_controller.py`: SPEC.md §4 흐름 그대로 — 번호 선택 후 1차 Y/N(Y=승인 분기, N=즉시 거절), 승인이 부족 케이스면 2차 Y/N(Y=PRODUCING+큐 등록, N=RESERVED 유지, 거절과는 다른 흐름).
+- 수동 스모크 테스트 중 주문번호가 길어 표 컬럼이 밀리는 문제를 발견해 `approval_view.py`의 컬럼 폭을 조정(주문번호 20자 폭 등)했다 — 계획에 없던 사소한 표시 버그 수정.
+- 테스트: `pytest tests/test_order_service.py tests/test_production_service.py -q` → 13 passed. 전체 스위트 `pytest -q` → 47 passed.
+- 수동 시나리오: 재고 부족 케이스(승인→Y→Y)로 `PRODUCING` 전환 + 큐 등록(`queue length: 1`) 확인, 거절 케이스(N)로 즉시 `REJECTED` 전환 확인. 재고 충분 케이스는 자동 테스트로 커버.
