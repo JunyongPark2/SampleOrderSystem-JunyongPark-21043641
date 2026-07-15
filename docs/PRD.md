@@ -210,8 +210,8 @@ class Order:
     sample_id: str
     customer_name: str
     quantity: int
-    status: OrderStatus = OrderStatus.RESERVED
     created_at: str
+    status: OrderStatus = OrderStatus.RESERVED
 ```
 
 `Sample.stock`의 `= 0`은 프로그래밍적 생성(내부 API 기본값) 편의를 위한 dataclass 기본값이며, 대화형 시료 등록(FR-1.1)에서는 사용자가 값을 직접 입력하고 검증받아야 한다.

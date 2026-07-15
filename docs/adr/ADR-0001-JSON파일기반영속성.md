@@ -33,4 +33,4 @@ Accepted (2026-07-15)
 
 ## 후속 영향
 - 향후 "다중 사용자 동시 접속" 또는 "대량 데이터" 요구가 생기면 이 ADR을 재검토하고 SQLite/DB로의 마이그레이션을 별도 ADR로 다뤄야 한다.
-- Repository 인터페이스(`create/get/list_all/list_by_status/update/delete`)를 CRUD 형태로 유지해 두면, 저장소를 교체하더라도 Service 계층 이상은 영향받지 않도록 설계했다(ARCHITECTURE.md §1 레이어 구조 참고).
+- Repository 인터페이스(`create/get/list_all/list_by_status/update` — `delete`는 현재 스펙상 필요 없어 미구현)를 CRUD 형태로 유지해 두면, 저장소를 교체하더라도 Service 계층 이상은 영향받지 않도록 설계했다(ARCHITECTURE.md §1 레이어 구조 참고).
