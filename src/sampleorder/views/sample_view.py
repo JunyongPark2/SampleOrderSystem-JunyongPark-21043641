@@ -1,7 +1,6 @@
 from sampleorder.models import Sample
-from sampleorder.views.formatting import ljust, rjust
+from sampleorder.views.formatting import INVALID_CHOICE_MESSAGE, ljust, rjust
 
-INVALID_CHOICE_MESSAGE = "잘못된 입력입니다. 다시 선택해주세요."
 NO_SEARCH_RESULT_MESSAGE = "일치하는 시료가 없습니다."
 
 

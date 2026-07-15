@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from sampleorder.services.monitoring_service import DashboardSummary
+from sampleorder.views.formatting import INVALID_CHOICE_MESSAGE
 
-INVALID_CHOICE_MESSAGE = "잘못된 입력입니다. 다시 선택해주세요."
 NOT_IMPLEMENTED_MESSAGE = "아직 구현되지 않은 기능입니다."
 
 

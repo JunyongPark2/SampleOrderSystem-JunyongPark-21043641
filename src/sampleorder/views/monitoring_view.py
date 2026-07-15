@@ -1,6 +1,4 @@
-from sampleorder.views.formatting import ljust, rjust
-
-INVALID_CHOICE_MESSAGE = "잘못된 입력입니다. 다시 선택해주세요."
+from sampleorder.views.formatting import INVALID_CHOICE_MESSAGE, ljust, rjust
 
 
 class MonitoringView:

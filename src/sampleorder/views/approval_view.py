@@ -1,9 +1,8 @@
 from sampleorder.models import Order
 from sampleorder.services.order_service import ApprovalPreview
-from sampleorder.views.formatting import ljust, rjust
+from sampleorder.views.formatting import INVALID_CHOICE_MESSAGE, ljust, rjust
 
 NO_PENDING_ORDERS_MESSAGE = "승인 대기 중인 주문이 없습니다."
-INVALID_CHOICE_MESSAGE = "잘못된 입력입니다. 다시 선택해주세요."
 
 
 class ApprovalView:
