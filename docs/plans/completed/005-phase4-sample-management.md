@@ -54,6 +54,15 @@ tests/test_sample_service.py
 
 ## 완료 조건
 
-- [ ] `tests/test_sample_service.py` 전체 통과.
-- [ ] 수동 시나리오(등록/조회/검색)가 SPEC.md §2 화면과 일치.
-- [ ] `formatting.py`가 이후 Phase의 다른 View에서 재사용 가능한 형태(순수 함수, 콘솔 의존 없음).
+- [x] `tests/test_sample_service.py` 전체 통과.
+- [x] 수동 시나리오(등록/조회/검색)가 SPEC.md §2 화면과 일치(등록 실패 재입력, 등록 완료, 목록, 검색 모두 확인).
+- [x] `formatting.py`가 이후 Phase의 다른 View에서 재사용 가능한 형태(순수 함수, 콘솔 의존 없음).
+
+## 진행 기록
+
+- `views/formatting.py`: `_display_width`(동아시아 폭 문자 2칸 처리), `ljust`/`rjust` 순수 함수 구현(콘솔 I/O 없음, 이후 Phase 공용).
+- `services/sample_service.py`: `validate_avg_production_time`/`validate_yield_rate`를 필드별로 분리해 `ValidationError`를 던지도록 구현 — View가 필드 단위로 재입력을 요구할 수 있도록(ARCHITECTURE.md §1 "검증 실패 메시지는 Service가 만들고 View는 그대로 출력") `register()`는 두 검증을 순서대로 호출한 뒤 Repository에 위임.
+- `views/sample_view.py`, `controllers/sample_controller.py`: 하위 메뉴 루프, 필드별 재입력 루프(평균 생산시간→수율), 표 형식 출력(ID/시료명/평균 생산시간/수율/현재 재고).
+- **문서에 없는 사소한 보강**: 숫자가 아닌 값 입력(`float()` 파싱 실패) 시 SPEC.md에 명시된 문구가 없어 "숫자를 입력해주세요."로 재입력을 요구하도록 controller에서 처리했다 — SPEC.md §0의 "숫자가 아니면 재입력" 공통 원칙을 이 화면에도 그대로 적용한 것으로, 별도 SPEC 변경 없이 진행.
+- `main.py`는 Phase 10에서 통합되므로, 이번 Phase 검증은 `SampleController`를 임시 스크립트로 직접 조립해 수동 시나리오(등록 실패→재입력→성공, 목록, 검색)를 실행해 SPEC.md §2 예시 화면과 형식이 일치함을 확인했다(임시 스크립트는 커밋 대상 아님).
+- 테스트: `pytest tests/test_sample_service.py -q` → 5 passed.

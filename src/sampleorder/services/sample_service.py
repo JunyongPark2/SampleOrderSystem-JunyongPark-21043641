@@ -1,0 +1,32 @@
+from sampleorder.exceptions import ValidationError
+from sampleorder.models import Sample
+from sampleorder.repositories.sample_repository import SampleRepository
+
+AVG_PRODUCTION_TIME_ERROR = "평균 생산시간은 0보다 커야 합니다. 다시 입력해주세요."
+YIELD_RATE_ERROR = "수율은 0 초과 1 이하 값이어야 합니다. 다시 입력해주세요."
+
+
+class SampleService:
+    def __init__(self, repository: SampleRepository):
+        self._repo = repository
+
+    def validate_avg_production_time(self, avg_production_time: float) -> float:
+        if avg_production_time <= 0:
+            raise ValidationError(AVG_PRODUCTION_TIME_ERROR)
+        return avg_production_time
+
+    def validate_yield_rate(self, yield_rate: float) -> float:
+        if not (0 < yield_rate <= 1):
+            raise ValidationError(YIELD_RATE_ERROR)
+        return yield_rate
+
+    def register(self, name: str, avg_production_time: float, yield_rate: float) -> Sample:
+        self.validate_avg_production_time(avg_production_time)
+        self.validate_yield_rate(yield_rate)
+        return self._repo.create(name, avg_production_time, yield_rate)
+
+    def list_all(self) -> list:
+        return self._repo.list_all()
+
+    def search(self, keyword: str) -> list:
+        return self._repo.search(keyword)
