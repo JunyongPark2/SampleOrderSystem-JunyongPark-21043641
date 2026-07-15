@@ -68,7 +68,12 @@ SampleOrderSystem/
     test_monitoring_service.py, test_shipping_service.py,
     test_sample_repository.py, test_order_repository.py,
     test_json_store.py, test_models.py, test_sample_service.py,
-    test_main_controller_smoke.py, conftest.py, __init__.py
+    test_main_controller_smoke.py, test_prompting.py,
+    test_sample_controller.py, test_order_controller.py, test_approval_controller.py,
+    test_shipping_controller.py, test_monitoring_controller.py, test_production_controller.py,
+    test_formatting.py, test_main_view.py, test_sample_view.py, test_order_view.py,
+    test_approval_view.py, test_shipping_view.py, test_monitoring_view.py, test_production_view.py,
+    conftest.py, __init__.py
   CLAUDE.md
   docs/
     PRD.md, SPEC.md, ARCHITECTURE.md

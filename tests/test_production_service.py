@@ -142,6 +142,20 @@ def test_current_item_progress_clamps_between_zero_and_one(
     assert after_end.progress == 1.0
 
 
+def test_current_item_progress_is_full_when_total_time_is_zero(
+    production_service, sample_repository, order_repository, fixed_now
+):
+    sample_repository.create("A", 0.8, 0.92)
+    order = order_repository.create("S-001", "고객A", 200)
+    production_service.enqueue(
+        order.order_id, "S-001", "A", 200, 0, 0, 0.0, now_fn=lambda: fixed_now
+    )
+
+    current = production_service.current_item(now_fn=lambda: fixed_now)
+
+    assert current.progress == 1.0
+
+
 def test_current_item_returns_none_when_queue_empty(production_service, fixed_now):
     assert production_service.current_item(now_fn=lambda: fixed_now) is None
 
