@@ -85,6 +85,52 @@ def test_preview_approval_shortage_computes_actual_yield_and_time(order_service,
     assert preview.total_time == pytest.approx(0.8 * 185)
 
 
+def test_preview_approval_excludes_stock_already_reserved_by_confirmed_order(
+    order_service, sample_repository, order_repository
+):
+    sample_repository.create("A", 0.8, 0.92)
+    sample_repository.update("S-001", stock=60)
+    confirmed_order = order_service.create_order("S-001", "고객A", 60)
+    order_repository.update(confirmed_order.order_id, status=OrderStatus.CONFIRMED)
+
+    order_b = order_service.create_order("S-001", "고객B", 30)
+    preview = order_service.preview_approval(order_b.order_id)
+
+    assert preview.kind == APPROVAL_SHORTAGE
+    assert preview.shortage_qty == 30
+
+
+def test_preview_approval_excludes_stock_reserved_by_producing_order(
+    order_service, sample_repository, order_repository
+):
+    sample_repository.create("A", 0.8, 0.92)
+    sample_repository.update("S-001", stock=60)
+    order_a = order_service.create_order("S-001", "고객A", 100)
+    preview_a = order_service.preview_approval(order_a.order_id)
+    order_service.confirm_approval(order_a.order_id, preview_a)
+    assert order_repository.get(order_a.order_id).status == OrderStatus.PRODUCING
+
+    order_b = order_service.create_order("S-001", "고객B", 60)
+    preview_b = order_service.preview_approval(order_b.order_id)
+
+    assert preview_b.kind == APPROVAL_SHORTAGE
+    assert preview_b.shortage_qty == 60
+
+
+def test_preview_approval_ignores_stock_reserved_by_unapproved_reserved_order(
+    order_service, sample_repository, order_repository
+):
+    sample_repository.create("A", 0.8, 0.92)
+    sample_repository.update("S-001", stock=100)
+    order_service.create_order("S-001", "고객A", 80)
+
+    order_b = order_service.create_order("S-001", "고객B", 50)
+    preview_b = order_service.preview_approval(order_b.order_id)
+
+    assert preview_b.kind == APPROVAL_SUFFICIENT
+    assert preview_b.shortage_qty == 0
+
+
 def test_confirm_approval_shortage_transitions_to_producing_and_enqueues(
     order_service, production_service, sample_repository
 ):

@@ -62,7 +62,10 @@ class OrderService:
     def preview_approval(self, order_id: str) -> ApprovalPreview:
         order = self._order_repo.get(order_id)
         sample = self._sample_repo.get(order.sample_id)
-        shortage_qty = calculations.shortage(order.quantity, sample.stock)
+        other_orders = [o for o in self._order_repo.list_all() if o.order_id != order_id]
+        reserved = calculations.reserved_qty(other_orders, order.sample_id)
+        available = calculations.available_stock(sample.stock, reserved)
+        shortage_qty = calculations.shortage(order.quantity, available)
         if shortage_qty <= 0:
             return ApprovalPreview(
                 kind=APPROVAL_SUFFICIENT,
