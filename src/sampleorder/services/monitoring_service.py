@@ -21,6 +21,14 @@ class StockReportRow:
     status: str
 
 
+@dataclass
+class DashboardSummary:
+    sample_count: int
+    total_stock: int
+    total_order_count: int
+    production_queue_count: int
+
+
 class MonitoringService:
     def __init__(self, order_repository: OrderRepository, sample_repository: SampleRepository):
         self._order_repo = order_repository
@@ -48,3 +56,13 @@ class MonitoringService:
                 )
             )
         return rows
+
+    def dashboard_summary(self, production_queue_count: int) -> DashboardSummary:
+        samples = self._sample_repo.list_all()
+        orders = self._order_repo.list_all()
+        return DashboardSummary(
+            sample_count=len(samples),
+            total_stock=sum(sample.stock for sample in samples),
+            total_order_count=len(orders),
+            production_queue_count=production_queue_count,
+        )

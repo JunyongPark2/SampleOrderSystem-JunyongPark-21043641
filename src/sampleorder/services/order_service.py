@@ -56,6 +56,9 @@ class OrderService:
     def list_reserved_orders(self) -> list:
         return self._order_repo.list_by_status(OrderStatus.RESERVED)
 
+    def list_all_orders(self) -> list:
+        return self._order_repo.list_all()
+
     def preview_approval(self, order_id: str) -> ApprovalPreview:
         order = self._order_repo.get(order_id)
         sample = self._sample_repo.get(order.sample_id)
