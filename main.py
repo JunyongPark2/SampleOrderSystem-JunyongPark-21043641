@@ -32,10 +32,11 @@ DATA_DIR = Path(__file__).parent / "data"
 def build_main_controller() -> MainController:
     sample_store = JsonFileStore(DATA_DIR / "samples.json")
     order_store = JsonFileStore(DATA_DIR / "orders.json")
+    queue_store = JsonFileStore(DATA_DIR / "production_queue.json")
     sample_repo = SampleRepository(sample_store)
     order_repo = OrderRepository(order_store)
 
-    production_service = ProductionService(order_repo, sample_repo)
+    production_service = ProductionService(order_repo, sample_repo, store=queue_store)
     sample_service = SampleService(sample_repo)
     order_service = OrderService(order_repo, sample_repo, production_service)
     monitoring_service = MonitoringService(order_repo, sample_repo)
