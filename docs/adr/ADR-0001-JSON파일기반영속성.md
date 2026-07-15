@@ -7,7 +7,7 @@ Accepted (2026-07-15)
 시스템은 Sample/Order 데이터를 애플리케이션 재시작 후에도 유지해야 한다(PRD.md NFR-1). 저장소 형식을 무엇으로 할지는 이후 Repository/Service 계층 전체의 인터페이스, 테스트 방식, 배포 방식을 좌우하는 선택이며, 한 번 데이터가 쌓이기 시작하면 다른 형식으로 옮기는 비용이 커진다.
 
 ## 결정
-`data/samples.json`, `data/orders.json` 두 개의 JSON 파일에 각각 레코드 리스트 전체를 저장하고, 매 쓰기마다 임시 파일에 쓴 뒤 `os.replace()`로 원자적 치환한다(`JsonFileStore`, DataPersistence PoC 재사용). 조회/수정 시 파일 전체를 메모리로 읽고 다시 통째로 쓰는 방식을 취하며, 별도의 트랜잭션이나 부분 갱신, 동시 접근 제어는 두지 않는다.
+`data/samples.json`, `data/orders.json`, `data/production_queue.json` 세 개의 JSON 파일에 각각 레코드 리스트 전체를 저장하고, 매 쓰기마다 임시 파일에 쓴 뒤 `os.replace()`로 원자적 치환한다(`JsonFileStore`, DataPersistence PoC 재사용). 조회/수정 시 파일 전체를 메모리로 읽고 다시 통째로 쓰는 방식을 취하며, 별도의 트랜잭션이나 부분 갱신, 동시 접근 제어는 두지 않는다.
 
 ## 고려한 대안
 1. **SQLite** — 파일 기반이면서도 트랜잭션과 인덱스, 동시성 제어를 제공.
